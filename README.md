@@ -59,6 +59,10 @@ This POS application is designed to be accessible across any device (tablets, mo
    ```
 3. On your tablet or secondary device, open a web browser and navigate to `http://192.168.1.50:3000`.
 
+## SRE & Operations Runbook
+
+For detailed instructions on **Disaster Recovery, Database Backups, Troubleshooting, and Monitoring**, please read the [SRE Runbook](./SRE_RUNBOOK.md).
+
 ## Docker vs GitHub Deployment
 
 **GitHub** is for storing and maintain your source code version history. It prevents data loss of your codebase and allows teams to collaborate. **Always use GitHub** for version control.
