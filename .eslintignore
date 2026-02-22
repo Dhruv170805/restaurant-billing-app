@@ -1,0 +1,5 @@
+indian-pos/**
+node_modules/**
+.next/**
+out/**
+build/**

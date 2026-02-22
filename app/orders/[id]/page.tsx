@@ -2,6 +2,8 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { formatPriceWithSettings } from '@/lib/pricing'
 
 interface OrderItem {
     id: number
@@ -17,120 +19,273 @@ interface Order {
     createdAt: string
     total: number
     status: string
+    paymentMethod?: 'CASH' | 'ONLINE'
+    tableNumber?: number
     items: OrderItem[]
+}
+
+interface Settings {
+    restaurantName: string
+    restaurantAddress: string
+    restaurantPhone: string
+    restaurantTagline: string
+    currencyLocale: string
+    currencyCode: string
+    taxLabel: string
 }
 
 export default function OrderPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
     const [order, setOrder] = useState<Order | null>(null)
     const [loading, setLoading] = useState(true)
+    const [settings, setSettings] = useState<Settings | null>(null)
+    const [selectedPayment, setSelectedPayment] = useState<'CASH' | 'ONLINE' | null>(null)
 
-    // Unwrap params using React.use()
     const resolvedParams = use(params)
 
     useEffect(() => {
-        fetchOrder()
-    }, [resolvedParams.id])
-
-    const fetchOrder = async () => {
-        const res = await fetch(`/api/orders/${resolvedParams.id}`)
-        if (res.ok) {
-            const data = await res.json()
-            setOrder(data)
+        const fetchOrder = async () => {
+            try {
+                const res = await fetch(`/api/orders/${resolvedParams.id}`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setOrder(data)
+                } else {
+                    toast.error('Order not found')
+                }
+            } catch (err) {
+                console.error('Failed to load order', err)
+                toast.error('Failed to load order')
+            }
+            setLoading(false)
         }
-        setLoading(false)
+        fetchOrder()
+        fetch('/api/settings').then(r => r.json()).then(setSettings).catch(console.error)
+    }, [resolvedParams.id, router])
+
+    const fmtPrice = (amount: number) => {
+        if (!settings) return `₹${amount.toFixed(2)}`
+        return formatPriceWithSettings(amount, settings.currencyLocale, settings.currencyCode)
     }
 
-    if (loading) return <div className="p-8 text-center">Loading order...</div>
-    if (!order) return <div className="p-8 text-center">Order not found</div>
+    const handleStatusUpdate = async (newStatus: string, paymentMethod?: string) => {
+        try {
+            const res = await fetch(`/api/orders/${resolvedParams.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus, paymentMethod })
+            })
+            if (res.ok) {
+                const updated = await res.json()
+                setOrder(updated)
+                toast.success(`Order marked as ${newStatus}`)
+                if (newStatus === 'PAID') {
+                    router.push('/')
+                }
+            } else {
+                const data = await res.json()
+                toast.error(data.error || 'Failed to update order')
+            }
+        } catch (err) {
+            console.error('Failed to update order', err)
+            toast.error('Failed to update order')
+        }
+    }
+
+    if (loading) return (
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--foreground-subtle)' }}>
+            Loading order...
+        </div>
+    )
+
+    if (!order) return (
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--foreground-subtle)' }}>
+            <p style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔍</p>
+            <p>Order not found</p>
+        </div>
+    )
+
+    const subtotal = order.items.reduce((sum, item) => sum + item.priceAtOrder * item.quantity, 0)
+    const taxAmount = order.total - subtotal
 
     return (
         <div className="max-w-2xl mx-auto">
-            <div className="flex justify-between items-center mb-6 print:hidden">
+            <div className="flex justify-between items-center mb-6" style={{ gap: '1rem' }}>
                 <button onClick={() => router.back()} className="btn btn-secondary">
                     ← Back
                 </button>
-                <button onClick={() => window.print()} className="btn btn-primary">
-                    Print Bill
-                </button>
+                <div className="flex gap-3">
+                    {order.status === 'PENDING' && (
+                        <button
+                            onClick={() => router.push(`/pos?table=${order.tableNumber}&orderId=${order.id}`)}
+                            className="btn btn-primary"
+                            style={{ background: 'var(--success)' }}
+                        >
+                            ➕ Add Items
+                        </button>
+                    )}
+                    {order.status !== 'CANCELLED' && (
+                        <button
+                            onClick={() => handleStatusUpdate('CANCELLED')}
+                            style={{
+                                background: 'var(--danger-bg)',
+                                color: 'var(--danger)',
+                                border: 'none',
+                                padding: '0.5rem 1rem',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.85rem',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            Cancel Order
+                        </button>
+                    )}
+                    <a href={`/orders/${order.id}/kot`} className="btn btn-secondary">
+                        🎫 Kitchen Token
+                    </a>
+                    <button onClick={() => window.print()} className="btn btn-primary">
+                        🖨️ Print Bill
+                    </button>
+                </div>
             </div>
 
-            <div className="card bg-white text-black p-8 print:shadow-none print:border-none print:p-0">
-                <div className="text-center mb-8 border-b border-gray-200 pb-4">
-                    <h1 className="text-3xl font-bold mb-2">RestoBill</h1>
-                    <p className="text-gray-600">123 Restaurant Street, City</p>
-                    <p className="text-gray-600">Tel: +1 234 567 890</p>
+            <div className="receipt-card print-area">
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)' }}>
+                    <h1 style={{
+                        fontSize: '1.8rem',
+                        fontWeight: 800,
+                        background: 'var(--primary-gradient)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        marginBottom: '0.35rem',
+                    }}>
+                        {settings?.restaurantName || 'Restaurant'}
+                    </h1>
+                    <p style={{ color: 'var(--foreground-muted)', fontSize: '0.85rem' }}>{settings?.restaurantAddress}</p>
+                    <p style={{ color: 'var(--foreground-muted)', fontSize: '0.85rem' }}>Tel: {settings?.restaurantPhone}</p>
                 </div>
 
-                <div className="flex justify-between mb-6 text-sm">
+                {/* Order Meta */}
+                <div className="flex justify-between mb-6" style={{ fontSize: '0.9rem' }}>
                     <div>
-                        <p className="text-gray-600">Order #</p>
-                        <p className="font-bold">{order.id}</p>
+                        <p style={{ color: 'var(--foreground-muted)', fontSize: '0.8rem', marginBottom: '0.15rem' }}>Order #</p>
+                        <p style={{ fontWeight: 700, color: 'var(--primary-light)' }}>{order.id}</p>
                     </div>
-                    <div className="text-right">
-                        <p className="text-gray-600">Date</p>
-                        <p className="font-bold">{new Date(order.createdAt).toLocaleString()}</p>
+                    {order.tableNumber && (
+                        <div style={{ textAlign: 'center' }}>
+                            <p style={{ color: 'var(--foreground-muted)', fontSize: '0.8rem', marginBottom: '0.15rem' }}>Table</p>
+                            <p style={{ fontWeight: 700 }}>{order.tableNumber}</p>
+                        </div>
+                    )}
+                    <div style={{ textAlign: 'right' }}>
+                        <p style={{ color: 'var(--foreground-muted)', fontSize: '0.8rem', marginBottom: '0.15rem' }}>Date</p>
+                        <p style={{ fontWeight: 600 }}>{new Date(order.createdAt).toLocaleString(settings?.currencyLocale)}</p>
                     </div>
                 </div>
 
-                <table className="w-full mb-6">
+                {/* Items Table */}
+                <table style={{ width: '100%', marginBottom: '1.5rem', borderCollapse: 'collapse' }}>
                     <thead>
-                        <tr className="border-b-2 border-black">
-                            <th className="text-left py-2">Item</th>
-                            <th className="text-center py-2">Qty</th>
-                            <th className="text-right py-2">Price</th>
-                            <th className="text-right py-2">Total</th>
+                        <tr style={{ borderBottom: '2px solid var(--glass-border)' }}>
+                            <th style={{ textAlign: 'left', padding: '0.7rem 0', fontWeight: 600, fontSize: '0.8rem', color: 'var(--foreground-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item</th>
+                            <th style={{ textAlign: 'center', padding: '0.7rem 0', fontWeight: 600, fontSize: '0.8rem', color: 'var(--foreground-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Qty</th>
+                            <th style={{ textAlign: 'right', padding: '0.7rem 0', fontWeight: 600, fontSize: '0.8rem', color: 'var(--foreground-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price</th>
+                            <th style={{ textAlign: 'right', padding: '0.7rem 0', fontWeight: 600, fontSize: '0.8rem', color: 'var(--foreground-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {order.items.map((item) => (
-                            <tr key={item.id} className="border-b border-gray-200">
-                                <td className="py-2">{item.menuItem.name}</td>
-                                <td className="text-center py-2">{item.quantity}</td>
-                                <td className="text-right py-2">${item.priceAtOrder.toFixed(2)}</td>
-                                <td className="text-right py-2">${(item.priceAtOrder * item.quantity).toFixed(2)}</td>
+                            <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                <td style={{ padding: '0.75rem 0', fontWeight: 500 }}>{item.menuItem.name}</td>
+                                <td style={{ textAlign: 'center', padding: '0.75rem 0' }}>{item.quantity}</td>
+                                <td style={{ textAlign: 'right', padding: '0.75rem 0', color: 'var(--foreground-muted)' }}>{fmtPrice(item.priceAtOrder)}</td>
+                                <td style={{ textAlign: 'right', padding: '0.75rem 0', fontWeight: 600 }}>{fmtPrice(item.priceAtOrder * item.quantity)}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
 
-                <div className="flex justify-end border-t-2 border-black pt-4">
-                    <div className="text-right">
-                        <p className="text-xl font-bold">Total: ${order.total.toFixed(2)}</p>
-                        <p className="text-sm text-gray-600 mt-1">Status: {order.status}</p>
+                {/* Totals */}
+                <div style={{ borderTop: '2px solid var(--glass-border)', paddingTop: '1rem' }}>
+                    {taxAmount > 0 && (
+                        <>
+                            <div className="flex justify-between items-center" style={{ marginBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--foreground-muted)' }}>Subtotal</span>
+                                <span style={{ fontWeight: 600 }}>{fmtPrice(subtotal)}</span>
+                            </div>
+                            <div className="flex justify-between items-center" style={{ marginBottom: '0.75rem' }}>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--foreground-muted)' }}>{settings?.taxLabel || 'Tax'}</span>
+                                <span style={{ fontWeight: 600 }}>{fmtPrice(taxAmount)}</span>
+                            </div>
+                        </>
+                    )}
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <span className={`badge ${order.status === 'PAID' ? 'badge-success' : order.status === 'CANCELLED' ? 'badge-danger' : 'badge-warning'}`}>
+                                {order.status}
+                            </span>
+                            {order.paymentMethod && (
+                                <span className="badge" style={{ marginLeft: '0.5rem', background: 'var(--glass-bg)', color: 'var(--foreground)' }}>
+                                    {order.paymentMethod}
+                                </span>
+                            )}
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{
+                                fontSize: '1.5rem',
+                                fontWeight: 800,
+                                background: 'var(--primary-gradient)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                            }}>
+                                {fmtPrice(order.total)}
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="text-center mt-8 pt-4 border-t border-gray-200 text-sm text-gray-600">
-                    <p>Thank you for dining with us!</p>
+                {/* Footer */}
+                <div style={{ textAlign: 'center', marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--glass-border)' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--foreground-muted)' }}>{settings?.restaurantTagline}</p>
                 </div>
             </div>
 
-            <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .card, .card * {
-            visibility: visible;
-          }
-          .card {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            background: white !important;
-            color: black !important;
-            box-shadow: none !important;
-            border: none !important;
-          }
-          .navbar, .btn {
-            display: none !important;
-          }
-        }
-      `}</style>
+            {/* Complete Order Section */}
+            {order.status === 'PENDING' && (
+                <div className="receipt-card print-area-hide" style={{ marginTop: '1.5rem', padding: '2rem', textAlign: 'center' }}>
+                    <h3 style={{ marginBottom: '1.5rem', color: 'var(--foreground)' }}>Complete Order</h3>
+
+                    <div className="flex gap-4 justify-center" style={{ marginBottom: '2rem' }}>
+                        <button
+                            className={`btn ${selectedPayment === 'CASH' ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setSelectedPayment('CASH')}
+                            style={{ flex: 1, padding: '1.5rem 1rem', fontSize: '1.1rem', borderRadius: 'var(--radius-lg)' }}
+                        >
+                            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>💵</span>
+                            Cash
+                        </button>
+                        <button
+                            className={`btn ${selectedPayment === 'ONLINE' ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setSelectedPayment('ONLINE')}
+                            style={{ flex: 1, padding: '1.5rem 1rem', fontSize: '1.1rem', borderRadius: 'var(--radius-lg)' }}
+                        >
+                            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>💳</span>
+                            Online
+                        </button>
+                    </div>
+
+                    <button
+                        className="checkout-btn"
+                        disabled={!selectedPayment}
+                        onClick={() => handleStatusUpdate('PAID', selectedPayment || undefined)}
+                    >
+                        ✓ Settle Bill & Complete ({fmtPrice(order.total)})
+                    </button>
+                </div>
+            )}
         </div>
     )
 }

@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Restaurant Billing & POS System
+
+A modern, fast, and feature-rich Point of Sale (POS) and billing system designed specifically for restaurants. It features a stunning dark-mode interface, robust table management, and comprehensive order tracking.
+
+## Features
+
+- **Table Management**: Visual grid of all restaurant tables, color-coded based on occupancy.
+- **Dynamic POS Flow**: Add items to an order categorized by type, complete with an efficient Search feature.
+- **Order Tracking Updates**: Add new items to an existing `PENDING` order without creating duplicate orders.
+- **Complete Checkout**: Select between "Cash" and "Online" payment methods to settle a table's bill.
+- **Sales Dashboard**: Real-time sales insights showing today's revenue, occupied tables, completed orders, and a payment method breakdown.
+- **Kitchen Order Tickets (KOT)**: Auto-generate printable tickets for the kitchen as soon as an order is placed.
+- **Configurable Settings**: A dedicated admin panel to update restaurant details, currency locales, taxation logic, and manage menus.
+
+## Technology Stack
+
+- **Frontend/Backend**: [Next.js 15](https://nextjs.org/) (App Directory)
+- **Styling**: Vanilla CSS (`globals.css`) with a sleek glassmorphism dark theme. No Tailwind dependencies.
+- **Database**: MySQL database connection pool via `mysql2/promise`.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js (v18+)
+- Local MySQL Server running (e.g. via Homebrew)
+
+### 1. Database Configuration
+
+Create a `.env.local` file at the root of the project:
+
+```env
+MYSQL_HOST=localhost
+MYSQL_PORT=3307  # Update to your local MySQL port
+MYSQL_USER=root
+MYSQL_PASSWORD=
+MYSQL_DATABASE=restaurant_billing
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Install & Start
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The database schema will automatically initialize and seed standard settings and menu data on the first successful API connection.
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) with your browser to launch the Table Dashboard.
 
-To learn more about Next.js, take a look at the following resources:
+## Accessing from Multiple Devices
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This POS application is designed to be accessible across any device (tablets, mobiles, etc.) connected to your local network.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Find your host computer's Local IP Address (e.g. `192.168.1.50`).
+2. Start the development server and bind it to all network interfaces:
+   ```bash
+   npm run dev -- -H 0.0.0.0
+   ```
+3. On your tablet or secondary device, open a web browser and navigate to `http://192.168.1.50:3000`.
 
-## Deploy on Vercel
+## Docker vs GitHub Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**GitHub** is for storing and maintaining your source code version history. It prevents data loss of your codebase and allows teams to collaborate. **Always use GitHub** for version control.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Docker** is for containerizing the application so it is easy to deploy anywhere (like AWS, DigitalOcean, or an on-premise dedicated server) without manually installing Node.js and MySQL over and over again. **Use Docker** when you are ready to package the app for production deployment.
+
+## License
+MIT
