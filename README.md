@@ -61,11 +61,20 @@ This POS application is designed to be accessible across any device (tablets, mo
 
 ## Docker vs GitHub Deployment
 
-**GitHub** is for storing and maintaining your source code version history. It prevents data loss of your codebase and allows teams to collaborate. **Always use GitHub** for version control.
+**GitHub** is for storing and maintain your source code version history. It prevents data loss of your codebase and allows teams to collaborate. **Always use GitHub** for version control.
 
 **Docker** is for containerizing the application so it is easy to deploy anywhere (like AWS, DigitalOcean, or an on-premise dedicated server) without manually installing Node.js and MySQL over and over again. **Use Docker** when you are ready to package the app for production deployment.
 
+### Running with Docker
+
+I have provided a `Dockerfile` and a `docker-compose.yml` file to make deployment fully automatic. The Compose file will automatically spin up a MySQL database for you, link it to the Next.js app, and start your production environment!
+
+1. Make sure you have Docker installed on your host server.
+2. In the terminal, run:
+```bash
+docker-compose up -d --build
+```
+3. Your app will now be running perpetually in the background at `http://YOUR_SERVER_IP:3000`!
+
 ## License
 MIT
-# restaurant-billing-app
-# restaurant-billing-app
