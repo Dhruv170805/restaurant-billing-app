@@ -15,11 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSettingsCompat()
 
   return (
@@ -30,17 +26,27 @@ export default async function RootLayout({
             ✦ {settings.restaurant.name}
           </Link>
           <div className="flex gap-6">
-            <Link href="/pos" className="nav-link">POS</Link>
-            <Link href="/" className="nav-link">Tables</Link>
-            <Link href="/menu" className="nav-link">Menu</Link>
-            <Link href="/orders" className="nav-link">Orders</Link>
-            <Link href="/dashboard" className="nav-link">Sales</Link>
-            <Link href="/settings" className="nav-link">⚙️</Link>
+            <Link href="/pos" className="nav-link">
+              POS
+            </Link>
+            <Link href="/" className="nav-link">
+              Tables
+            </Link>
+            <Link href="/menu" className="nav-link">
+              Menu
+            </Link>
+            <Link href="/orders" className="nav-link">
+              Orders
+            </Link>
+            <Link href="/dashboard" className="nav-link">
+              Sales
+            </Link>
+            <Link href="/settings" className="nav-link">
+              ⚙️
+            </Link>
           </div>
         </nav>
-        <main className="container animate-fade-in">
-          {children}
-        </main>
+        <main className="container animate-fade-in">{children}</main>
         <Toaster
           position="top-center"
           duration={2000}
