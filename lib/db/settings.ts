@@ -1,49 +1,48 @@
-import mysql from 'mysql2/promise'
-import { ensureInitialized } from './pool'
+import { ensureInitialized } from './mongo'
 import { AppSettings } from '@/types'
+import { DbSettings } from './schema'
 
 export async function getSettings(): Promise<AppSettings> {
-    const pool = await ensureInitialized()
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>('SELECT `key`, value FROM settings')
-    const map = new Map(rows.map((r: mysql.RowDataPacket) => [r.key, r.value]))
+    const db = await ensureInitialized()
+    // Default fallback values
+    const defaultSettings: AppSettings = {
+        restaurantName: 'Restaurant',
+        restaurantAddress: '',
+        restaurantPhone: '',
+        restaurantTagline: '',
+        currencyLocale: 'en-IN',
+        currencyCode: 'INR',
+        currencySymbol: '₹',
+        taxEnabled: false,
+        taxRate: 0,
+        taxLabel: 'GST',
+        tableCount: 12,
+    }
+
+    const settingsDoc = await db.collection<DbSettings>('settings').findOne({ _id: 'app_settings' })
+    if (!settingsDoc) return defaultSettings
 
     return {
-        restaurantName: (map.get('restaurantName') as string) || 'Restaurant',
-        restaurantAddress: (map.get('restaurantAddress') as string) || '',
-        restaurantPhone: (map.get('restaurantPhone') as string) || '',
-        restaurantTagline: (map.get('restaurantTagline') as string) || '',
-        currencyLocale: (map.get('currencyLocale') as string) || 'en-IN',
-        currencyCode: (map.get('currencyCode') as string) || 'INR',
-        currencySymbol: (map.get('currencySymbol') as string) || '₹',
-        taxEnabled: (map.get('taxEnabled') as string) === 'true',
-        taxRate: parseFloat((map.get('taxRate') as string) || '0'),
-        taxLabel: (map.get('taxLabel') as string) || 'GST',
-        tableCount: parseInt((map.get('tableCount') as string) || '12'),
+        restaurantName: settingsDoc.restaurantName ?? defaultSettings.restaurantName,
+        restaurantAddress: settingsDoc.restaurantAddress ?? defaultSettings.restaurantAddress,
+        restaurantPhone: settingsDoc.restaurantPhone ?? defaultSettings.restaurantPhone,
+        restaurantTagline: settingsDoc.restaurantTagline ?? defaultSettings.restaurantTagline,
+        currencyLocale: settingsDoc.currencyLocale ?? defaultSettings.currencyLocale,
+        currencyCode: settingsDoc.currencyCode ?? defaultSettings.currencyCode,
+        currencySymbol: settingsDoc.currencySymbol ?? defaultSettings.currencySymbol,
+        taxEnabled: settingsDoc.taxEnabled ?? defaultSettings.taxEnabled,
+        taxRate: Number(settingsDoc.taxRate) ?? defaultSettings.taxRate,
+        taxLabel: settingsDoc.taxLabel ?? defaultSettings.taxLabel,
+        tableCount: Number(settingsDoc.tableCount) ?? defaultSettings.tableCount,
     }
 }
 
 export async function updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
-    const pool = await ensureInitialized()
-    const conn = await pool.getConnection()
-    try {
-        await conn.beginTransaction()
-
-        for (const [key, value] of Object.entries(updates)) {
-            if (value !== undefined) {
-                await conn.execute(
-                    'INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
-                    [key, String(value)]
-                )
-            }
-        }
-        await conn.commit()
-    } catch (err) {
-        await conn.rollback()
-        throw err
-    } finally {
-        conn.release()
-    }
-
+    const db = await ensureInitialized()
+    await db.collection<DbSettings>('settings').updateOne(
+        { _id: 'app_settings' },
+        { $set: updates },
+        { upsert: true }
+    )
     return getSettings()
 }
-

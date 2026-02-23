@@ -16,8 +16,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSettingsCompat()
-
   return (
     <html lang="en">
       <body className={inter.className}>

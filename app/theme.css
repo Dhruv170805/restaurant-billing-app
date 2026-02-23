@@ -698,6 +698,7 @@ select.form-input {
   font-weight: 800 !important;
   background: var(--primary-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
@@ -707,6 +708,7 @@ select.form-input {
   font-weight: 800;
   background: var(--primary-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: -0.02em;
@@ -1035,6 +1037,7 @@ select.form-input {
 .table-card.occupied .table-card-number {
   background: linear-gradient(135deg, var(--danger), #fb923c);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }

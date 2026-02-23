@@ -1,6 +1,6 @@
-import mysql from 'mysql2/promise'
-import { ensureInitialized } from './pool'
+import { ensureInitialized, getNextSequence } from './mongo'
 import { Order, OrderItem, PaginatedOrders } from '@/types'
+import { DbOrder, DbMenuItem } from './schema'
 
 export async function getOrders(): Promise<Order[]> {
     return (await getOrdersPaginated(1, 1000)).orders
@@ -10,33 +10,19 @@ export async function getOrdersPaginated(
     page: number = 1,
     limit: number = 20
 ): Promise<PaginatedOrders> {
-    const pool = await ensureInitialized()
+    const db = await ensureInitialized()
     const offset = (page - 1) * limit
 
-    const [totalRows] = await pool.execute<mysql.RowDataPacket[]>(
-        'SELECT COUNT(*) as total FROM orders'
-    )
-    const total = totalRows[0].total
+    const ordersCollection = db.collection<DbOrder>('orders')
+    const total = await ordersCollection.countDocuments()
 
-    const limitNum = Number(limit)
-    const offsetNum = Number(offset)
+    const docs = await ordersCollection.find()
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .toArray()
 
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(`
-        SELECT
-            o.id, o.token_number, o.table_number, o.status, o.payment_method, o.total,
-            o.created_at, o.updated_at,
-            oi.menu_item_id, oi.name as item_name, oi.quantity, oi.price as item_price
-        FROM orders o
-        LEFT JOIN order_items oi ON oi.order_id = o.id
-        WHERE o.id IN (
-            SELECT id FROM (
-                SELECT id FROM orders ORDER BY created_at DESC LIMIT ${limitNum} OFFSET ${offsetNum}
-            ) as subq
-        )
-        ORDER BY o.created_at DESC, oi.id
-    `)
-
-    const orders = buildOrdersFromJoinRows(rows)
+    const orders = docs.map(mapMongoOrderToTypes)
 
     return {
         orders,
@@ -48,58 +34,28 @@ export async function getOrdersPaginated(
 }
 
 export async function getOrdersByDateRange(from: string, to: string): Promise<Order[]> {
-    const pool = await ensureInitialized()
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(
-        `
-        SELECT
-            o.id, o.token_number, o.table_number, o.status, o.payment_method, o.total,
-            o.created_at, o.updated_at,
-            oi.menu_item_id, oi.name as item_name, oi.quantity, oi.price as item_price
-        FROM orders o
-        LEFT JOIN order_items oi ON oi.order_id = o.id
-        WHERE o.created_at >= ? AND o.created_at <= ?
-        ORDER BY o.created_at DESC, oi.id
-    `,
-        [from, to]
-    )
+    const db = await ensureInitialized()
+    const docs = await db.collection<DbOrder>('orders').find({
+        createdAt: { $gte: from, $lte: to }
+    }).sort({ createdAt: -1 }).toArray()
 
-    return buildOrdersFromJoinRows(rows)
+    return docs.map(mapMongoOrderToTypes)
 }
 
-export async function getOrdersByStatus(status: string): Promise<Order[]> {
-    const pool = await ensureInitialized()
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(
-        `
-        SELECT
-            o.id, o.token_number, o.table_number, o.status, o.payment_method, o.total,
-            o.created_at, o.updated_at,
-            oi.menu_item_id, oi.name as item_name, oi.quantity, oi.price as item_price
-        FROM orders o
-        LEFT JOIN order_items oi ON oi.order_id = o.id
-        WHERE o.status = ?
-        ORDER BY o.created_at DESC, oi.id
-    `,
-        [status]
-    )
+export async function getOrdersByStatus(status: 'PENDING' | 'PAID' | 'CANCELLED'): Promise<Order[]> {
+    const db = await ensureInitialized()
+    const docs = await db.collection<DbOrder>('orders').find({ status })
+        .sort({ createdAt: -1 })
+        .toArray()
 
-    return buildOrdersFromJoinRows(rows)
+    return docs.map(mapMongoOrderToTypes)
 }
-
 
 export async function getOrder(id: number): Promise<Order | undefined> {
-    const pool = await ensureInitialized()
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(`
-        SELECT
-            o.id, o.token_number, o.table_number, o.status, o.payment_method, o.total,
-            o.created_at, o.updated_at,
-            oi.menu_item_id, oi.name as item_name, oi.quantity, oi.price as item_price
-        FROM orders o
-        LEFT JOIN order_items oi ON oi.order_id = o.id
-        WHERE o.id = ?
-    `, [id])
-
-    if (rows.length === 0) return undefined
-    return buildOrdersFromJoinRows(rows)[0]
+    const db = await ensureInitialized()
+    const doc = await db.collection<DbOrder>('orders').findOne({ _id: id })
+    if (!doc) return undefined
+    return mapMongoOrderToTypes(doc)
 }
 
 export async function createOrder(
@@ -107,218 +63,154 @@ export async function createOrder(
     _clientTotal: number,
     tableNumber: number
 ): Promise<Order> {
-    const pool = await ensureInitialized()
-    const conn = await pool.getConnection()
+    const db = await ensureInitialized()
 
-    try {
-        await conn.beginTransaction()
+    let serverTotal = 0
+    const processedItems = []
 
-        let serverTotal = 0
-        for (const item of items) {
-            const [priceRows] = await conn.execute<mysql.RowDataPacket[]>(
-                'SELECT price FROM menu_items WHERE id = ?',
-                [item.menuItemId]
-            )
-            if (priceRows.length > 0) {
-                item.price = Math.round(parseFloat(priceRows[0].price) * 100) / 100
-            }
-            serverTotal += Math.round(item.price * item.quantity * 100) / 100
+    for (const item of items) {
+        const menuItem = await db.collection<DbMenuItem>('menu_items').findOne({ _id: item.menuItemId })
+        if (menuItem) {
+            item.price = Math.round(menuItem.price * 100) / 100
         }
+        serverTotal += Math.round(item.price * item.quantity * 100) / 100
 
-        const total = Math.round(serverTotal * 100) / 100
-        const now = new Date()
-        const nowFormatted = now.toISOString().slice(0, 19).replace('T', ' ')
-
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        const startOfDayFormatted = startOfDay.toISOString().slice(0, 19).replace('T', ' ')
-        const [countRows] = await conn.execute<mysql.RowDataPacket[]>(
-            'SELECT COUNT(*) as c FROM orders WHERE created_at >= ?',
-            [startOfDayFormatted]
-        )
-        const tokenNumber = countRows[0].c + 1
-
-        const [result] = await conn.execute<mysql.ResultSetHeader>(
-            `
-            INSERT INTO orders (token_number, table_number, status, total, created_at, updated_at)
-            VALUES (?, ?, 'PENDING', ?, ?, ?)
-        `,
-            [tokenNumber, tableNumber, total, nowFormatted, nowFormatted]
-        )
-
-        const orderId = result.insertId
-
-        for (const item of items) {
-            await conn.execute(
-                `
-                INSERT INTO order_items (order_id, menu_item_id, name, quantity, price)
-                VALUES (?, ?, ?, ?, ?)
-            `,
-                [orderId, item.menuItemId, item.name, item.quantity, item.price]
-            )
-        }
-
-        await conn.commit()
-        return (await getOrder(orderId))!
-    } catch (err) {
-        await conn.rollback()
-        throw err
-    } finally {
-        conn.release()
+        processedItems.push({
+            menuItemId: item.menuItemId,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+        })
     }
+
+    const total = Math.round(serverTotal * 100) / 100
+    const now = new Date()
+    const nowFormatted = now.toISOString().slice(0, 19).replace('T', ' ')
+
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const startOfDayFormatted = startOfDay.toISOString().slice(0, 19).replace('T', ' ')
+
+    const c = await db.collection<DbOrder>('orders').countDocuments({
+        createdAt: { $gte: startOfDayFormatted }
+    })
+    const tokenNumber = c + 1
+
+    const orderId = await getNextSequence('orderId')
+
+    const newOrder: DbOrder = {
+        _id: orderId,
+        tokenNumber,
+        tableNumber,
+        status: 'PENDING',
+        paymentMethod: null,
+        subtotal: total,
+        tax: 0,
+        total,
+        createdAt: nowFormatted,
+        updatedAt: nowFormatted,
+        items: processedItems,
+        itemCount: processedItems.reduce((acc, item) => acc + item.quantity, 0)
+    }
+
+    await db.collection<DbOrder>('orders').insertOne(newOrder)
+    return (await getOrder(orderId))!
 }
 
-/**
- * Append new items to an existing order and update its total.
- */
 export async function addItemsToOrder(orderId: number, items: OrderItem[]): Promise<Order> {
-    const pool = await ensureInitialized()
-    const conn = await pool.getConnection()
+    const db = await ensureInitialized()
+    const order = await db.collection<DbOrder>('orders').findOne({ _id: orderId })
+    if (!order) throw new Error('Order not found')
+    if (order.status !== 'PENDING') throw new Error('Can only add items to PENDING orders')
 
-    try {
-        await conn.beginTransaction()
+    let addedTotal = 0
+    const newItems = [...(order.items || [])]
 
-        // Verify order exists and is PENDING
-        const [orderRows] = await conn.execute<mysql.RowDataPacket[]>(
-            'SELECT total, status FROM orders WHERE id = ?',
-            [orderId]
-        )
-        if (orderRows.length === 0) throw new Error('Order not found')
-        if (orderRows[0].status !== 'PENDING') throw new Error('Can only add items to PENDING orders')
+    for (const item of items) {
+        const menuItem = await db.collection<DbMenuItem>('menu_items').findOne({ _id: item.menuItemId })
+        if (menuItem) {
+            item.price = Math.round(menuItem.price * 100) / 100
+        }
+        addedTotal += Math.round(item.price * item.quantity * 100) / 100
 
-        const currentTotal = parseFloat(orderRows[0].total)
+        const existingItemIndex = newItems.findIndex((i) => i.menuItemId === item.menuItemId)
+        if (existingItemIndex > -1) {
+            newItems[existingItemIndex].quantity += item.quantity
+            newItems[existingItemIndex].price = item.price // Update price if changed
+        } else {
+            newItems.push({
+                menuItemId: item.menuItemId,
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price
+            })
+        }
+    }
 
-        // Verify prices and calculate added total
-        let addedTotal = 0
-        for (const item of items) {
-            const [priceRows] = await conn.execute<mysql.RowDataPacket[]>(
-                'SELECT price FROM menu_items WHERE id = ?',
-                [item.menuItemId]
-            )
-            if (priceRows.length > 0) {
-                item.price = Math.round(parseFloat(priceRows[0].price) * 100) / 100
-            }
-            addedTotal += Math.round(item.price * item.quantity * 100) / 100
+    const newTotal = Math.round((order.total + addedTotal) * 100) / 100
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
 
-            // Check if item already exists in this order
-            const [existingItemRows] = await conn.execute<mysql.RowDataPacket[]>(
-                'SELECT id, quantity FROM order_items WHERE order_id = ? AND menu_item_id = ?',
-                [orderId, item.menuItemId]
-            )
-
-            if (existingItemRows.length > 0) {
-                // Update quantity of existing item
-                const newQty = existingItemRows[0].quantity + item.quantity
-                await conn.execute('UPDATE order_items SET quantity = ?, price = ? WHERE id = ?', [
-                    newQty,
-                    item.price,
-                    existingItemRows[0].id,
-                ])
-            } else {
-                // Insert new item
-                await conn.execute(
-                    `
-                    INSERT INTO order_items (order_id, menu_item_id, name, quantity, price)
-                    VALUES (?, ?, ?, ?, ?)
-                `,
-                    [orderId, item.menuItemId, item.name, item.quantity, item.price]
-                )
+    await db.collection<DbOrder>('orders').updateOne(
+        { _id: orderId },
+        {
+            $set: {
+                items: newItems,
+                total: newTotal,
+                updatedAt: now
             }
         }
+    )
 
-        const newTotal = Math.round((currentTotal + addedTotal) * 100) / 100
-        const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
-
-        await conn.execute('UPDATE orders SET total = ?, updated_at = ? WHERE id = ?', [
-            newTotal,
-            now,
-            orderId,
-        ])
-
-        await conn.commit()
-        return (await getOrder(orderId))!
-    } catch (err) {
-        await conn.rollback()
-        throw err
-    } finally {
-        conn.release()
-    }
+    return (await getOrder(orderId))!
 }
-
 
 export async function updateOrderStatus(
     id: number,
     status: 'PENDING' | 'PAID' | 'CANCELLED',
     paymentMethod?: 'CASH' | 'ONLINE'
 ): Promise<Order | null> {
-    const pool = await ensureInitialized()
+    const db = await ensureInitialized()
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
 
-    let query = 'UPDATE orders SET status = ?, updated_at = ?'
-    let params: any[] = [status, now]
-
+    const updateDoc: Partial<DbOrder> = { status, updatedAt: now }
     if (paymentMethod) {
-        query = 'UPDATE orders SET status = ?, payment_method = ?, updated_at = ?'
-        params = [status, paymentMethod, now]
+        updateDoc.paymentMethod = paymentMethod
     }
 
-    query += ' WHERE id = ?'
-    params.push(id)
+    const result = await db.collection<DbOrder>('orders').updateOne(
+        { _id: id },
+        { $set: updateDoc }
+    )
 
-    const [result] = await pool.execute<mysql.ResultSetHeader>(query, params)
-    if (result.affectedRows === 0) return null
-    return getOrder(id) as Promise<Order>
+    if (result.matchedCount === 0) return null
+    return (await getOrder(id)) || null
 }
 
 export async function deleteOrder(id: number): Promise<boolean> {
-    const pool = await ensureInitialized()
-    const conn = await pool.getConnection()
-    try {
-        await conn.beginTransaction()
-        // Delete items first due to foreign key constraints if not cascading
-        await conn.execute('DELETE FROM order_items WHERE order_id = ?', [id])
-        const [result] = await conn.execute<mysql.ResultSetHeader>('DELETE FROM orders WHERE id = ?', [
-            id,
-        ])
-        await conn.commit()
-        return result.affectedRows > 0
-    } catch (err) {
-        await conn.rollback()
-        throw err
-    } finally {
-        conn.release()
-    }
+    const db = await ensureInitialized()
+    const result = await db.collection<DbOrder>('orders').deleteOne({ _id: id })
+    return result.deletedCount > 0
 }
 
-
-function buildOrdersFromJoinRows(rows: mysql.RowDataPacket[]): Order[] {
-    const ordersMap = new Map<number, Order>()
-    for (const row of rows) {
-        if (!ordersMap.has(row.id)) {
-            ordersMap.set(row.id, {
-                id: row.id,
-                tokenNumber: row.token_number,
-                tableNumber: row.table_number,
-                status: row.status,
-                paymentMethod: row.payment_method,
-                total: parseFloat(row.total),
-                subtotal: parseFloat(row.total), // Simplified
-                tax: 0, // Simplified
-                createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
-                updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
-                items: [],
-            })
-        }
-        if (row.menu_item_id != null) {
-            ordersMap.get(row.id)!.items.push({
-                id: 0, // Not stored in DB directly as separate ID in results here
-                orderId: row.id,
-                menuItemId: row.menu_item_id,
-                name: row.item_name,
-                quantity: row.quantity,
-                price: parseFloat(row.item_price),
-                menuItem: { name: row.item_name, category: { name: '' } } // Simplified
-            })
-        }
+function mapMongoOrderToTypes(doc: DbOrder): Order {
+    return {
+        id: doc._id,
+        tokenNumber: doc.tokenNumber,
+        tableNumber: doc.tableNumber,
+        status: doc.status,
+        paymentMethod: doc.paymentMethod,
+        total: doc.total,
+        subtotal: doc.total,
+        tax: 0,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        items: (doc.items || []).map((i) => ({
+            id: 0,
+            orderId: doc._id,
+            menuItemId: i.menuItemId,
+            name: i.name,
+            quantity: i.quantity,
+            price: i.price,
+            menuItem: { name: i.name, category: { name: '' } }
+        }))
     }
-    return Array.from(ordersMap.values())
 }

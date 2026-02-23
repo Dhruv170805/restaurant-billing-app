@@ -18,25 +18,21 @@ A modern, fast, and feature-rich Point of Sale (POS) and billing system designed
 
 - **Frontend/Backend**: [Next.js 15](https://nextjs.org/) (App Directory)
 - **Styling**: Vanilla CSS (`globals.css`) with a sleek glassmorphism dark theme. No Tailwind dependencies.
-- **Database**: MySQL database connection pool via `mysql2/promise`.
+- **Database**: MongoDB via the native Node.js `mongodb` driver.
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js (v18+)
-- Local MySQL Server running (e.g. via Homebrew)
+- MongoDB connection string (Atlas or Local)
 
 ### 1. Database Configuration
 
 Create a `.env.local` file at the root of the project:
 
 ```env
-MYSQL_HOST=localhost
-MYSQL_PORT=3307  # Update to your local MySQL port
-MYSQL_USER=root
-MYSQL_PASSWORD=
-MYSQL_DATABASE=restaurant_billing
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.example.mongodb.net/restaurant_db?retryWrites=true&w=majority
 ```
 
 ### 2. Install & Start

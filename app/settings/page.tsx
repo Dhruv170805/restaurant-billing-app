@@ -3,22 +3,10 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 
-interface Settings {
-  restaurantName: string
-  restaurantAddress: string
-  restaurantPhone: string
-  restaurantTagline: string
-  currencySymbol: string
-  currencyCode: string
-  currencyLocale: string
-  taxEnabled: boolean
-  taxRate: number
-  taxLabel: string
-  tableCount: number
-}
+import { DbSettings } from '@/lib/db/schema'
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings | null>(null)
+  const [settings, setSettings] = useState<DbSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -63,7 +51,7 @@ export default function SettingsPage() {
     setSaving(false)
   }
 
-  const updateField = (field: keyof Settings, value: string | number | boolean) => {
+  const updateField = (field: keyof DbSettings, value: string | number | boolean) => {
     if (!settings) return
     setSettings({ ...settings, [field]: value })
   }

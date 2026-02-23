@@ -3,35 +3,14 @@
 import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface OrderItem {
-  id: number
-  quantity: number
-  priceAtOrder: number
-  menuItem: {
-    name: string
-  }
-}
-
-interface Order {
-  id: number
-  tokenNumber?: number
-  tableNumber?: number
-  createdAt: string
-  total: number
-  status: string
-  items: OrderItem[]
-}
-
-interface Settings {
-  restaurantName: string
-  currencyLocale: string
-}
+import type { Order } from '@/types'
+import type { DbSettings } from '@/lib/db/schema'
 
 export default function KitchenTokenPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
-  const [settings, setSettings] = useState<Settings | null>(null)
+  const [settings, setSettings] = useState<DbSettings | null>(null)
 
   const resolvedParams = use(params)
 
@@ -223,7 +202,7 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
                       letterSpacing: '0.01em',
                     }}
                   >
-                    {item.menuItem.name}
+                    {item.name}
                   </td>
                   <td
                     style={{

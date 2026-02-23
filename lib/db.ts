@@ -2,7 +2,7 @@
 // This file re-exports functions from modular domain files to maintain
 // backward compatibility while providing a cleaner architecture.
 
-export * from './db/pool'
+export * from './db/mongo'
 export * from './db/menu'
 export * from './db/orders'
 export * from './db/settings'

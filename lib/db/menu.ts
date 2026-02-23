@@ -1,99 +1,108 @@
-import mysql from 'mysql2/promise'
-import { ensureInitialized } from './pool'
+import { ensureInitialized, getNextSequence } from './mongo'
 import { Category, MenuItem } from '@/types'
+import { DbCategory, DbMenuItem } from './schema'
 
 export async function getCategories(): Promise<Category[]> {
-    const pool = await ensureInitialized()
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(`
-        SELECT c.id, c.name, COUNT(m.id) as itemCount
-        FROM categories c
-        LEFT JOIN menu_items m ON m.category_id = c.id
-        GROUP BY c.id
-        ORDER BY c.id
-    `)
-    return rows as Category[]
+    const db = await ensureInitialized()
+
+    // Aggregate to get item counts
+    const categories = await db.collection<DbCategory>('categories').aggregate([
+        {
+            $lookup: {
+                from: 'menu_items',
+                localField: '_id',
+                foreignField: 'categoryId',
+                as: 'items'
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                name: 1,
+                itemCount: { $size: '$items' }
+            }
+        },
+        { $sort: { _id: 1 } }
+    ]).toArray()
+
+    return categories.map(c => ({
+        id: c._id,
+        name: c.name,
+        itemCount: c.itemCount
+    }))
 }
 
 export async function addCategory(name: string): Promise<Category> {
-    const pool = await ensureInitialized()
-    const [result] = await pool.execute<mysql.ResultSetHeader>(
-        'INSERT INTO categories (name) VALUES (?)',
-        [name]
-    )
-    return { id: result.insertId, name, itemCount: 0 }
+    const db = await ensureInitialized()
+    const id = await getNextSequence('categoryId')
+    await db.collection<DbCategory>('categories').insertOne({ _id: id, name })
+    return { id, name, itemCount: 0 }
 }
 
 export async function updateCategory(id: number, name: string): Promise<Category | null> {
-    const pool = await ensureInitialized()
-    const [result] = await pool.execute<mysql.ResultSetHeader>(
-        'UPDATE categories SET name = ? WHERE id = ?',
-        [name, id]
+    const db = await ensureInitialized()
+    const result = await db.collection<DbCategory>('categories').updateOne(
+        { _id: id },
+        { $set: { name } }
     )
-    if (result.affectedRows === 0) return null
+    if (result.matchedCount === 0) return null
     return { id, name }
 }
 
 export async function deleteCategory(id: number): Promise<boolean> {
-    const pool = await ensureInitialized()
-    const conn = await pool.getConnection()
-    try {
-        await conn.beginTransaction()
-        const [rows] = await conn.execute<mysql.RowDataPacket[]>(
-            'SELECT COUNT(*) as c FROM menu_items WHERE category_id = ?',
-            [id]
-        )
-        if (rows[0].c > 0) {
-            await conn.rollback()
-            return false
-        }
-        const [result] = await conn.execute<mysql.ResultSetHeader>(
-            'DELETE FROM categories WHERE id = ?',
-            [id]
-        )
-        await conn.commit()
-        return result.affectedRows > 0
-    } catch (err) {
-        await conn.rollback()
-        throw err
-    } finally {
-        conn.release()
-    }
+    const db = await ensureInitialized()
+    const itemCount = await db.collection<DbMenuItem>('menu_items').countDocuments({ categoryId: id })
+    if (itemCount > 0) return false // Prevent deletion if items exist
+
+    const result = await db.collection<DbCategory>('categories').deleteOne({ _id: id })
+    return result.deletedCount > 0
 }
 
 export async function getMenuItems(): Promise<MenuItem[]> {
-    const pool = await ensureInitialized()
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(`
-        SELECT m.id, m.name, m.price, c.name as categoryName, m.category_id as categoryId
-        FROM menu_items m
-        JOIN categories c ON c.id = m.category_id
-        ORDER BY c.id, m.name
-    `)
-    return rows.map(r => ({
-        id: r.id,
-        name: r.name,
-        price: parseFloat(r.price),
-        category: { id: r.categoryId, name: r.categoryName }
+    const db = await ensureInitialized()
+    const items = await db.collection<DbMenuItem>('menu_items').aggregate([
+        {
+            $lookup: {
+                from: 'categories',
+                localField: 'categoryId',
+                foreignField: '_id',
+                as: 'categoryDetails'
+            }
+        },
+        { $unwind: '$categoryDetails' },
+        { $sort: { categoryId: 1, name: 1 } }
+    ]).toArray()
+
+    return items.map(m => ({
+        id: m._id,
+        name: m.name,
+        price: m.price,
+        category: { id: m.categoryId, name: m.categoryDetails.name }
     }))
 }
 
 export async function getMenuItem(id: number): Promise<MenuItem | undefined> {
-    const pool = await ensureInitialized()
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(
-        `
-        SELECT m.id, m.name, m.price, c.name as categoryName, m.category_id as categoryId
-        FROM menu_items m
-        JOIN categories c ON c.id = m.category_id
-        WHERE m.id = ?
-    `,
-        [id]
-    )
-    if (!rows[0]) return undefined
-    const r = rows[0]
+    const db = await ensureInitialized()
+    const items = await db.collection<DbMenuItem>('menu_items').aggregate([
+        { $match: { _id: id } },
+        {
+            $lookup: {
+                from: 'categories',
+                localField: 'categoryId',
+                foreignField: '_id',
+                as: 'categoryDetails'
+            }
+        },
+        { $unwind: '$categoryDetails' }
+    ]).toArray()
+
+    if (!items.length) return undefined
+    const m = items[0]
     return {
-        id: r.id,
-        name: r.name,
-        price: parseFloat(r.price),
-        category: { id: r.categoryId, name: r.categoryName }
+        id: m._id,
+        name: m.name,
+        price: m.price,
+        category: { id: m.categoryId, name: m.categoryDetails.name }
     }
 }
 
@@ -102,22 +111,23 @@ export async function addMenuItem(
     price: number,
     categoryId: number
 ): Promise<MenuItem | null> {
-    const pool = await ensureInitialized()
-    const [catRows] = await pool.execute<mysql.RowDataPacket[]>(
-        'SELECT name FROM categories WHERE id = ?',
-        [categoryId]
-    )
-    if (catRows.length === 0) return null
+    const db = await ensureInitialized()
+    const category = await db.collection<DbCategory>('categories').findOne({ _id: categoryId })
+    if (!category) return null
 
-    const [result] = await pool.execute<mysql.ResultSetHeader>(
-        'INSERT INTO menu_items (name, price, category_id) VALUES (?, ?, ?)',
-        [name, price, categoryId]
-    )
-    return {
-        id: result.insertId,
+    const id = await getNextSequence('menuItemId')
+    await db.collection<DbMenuItem>('menu_items').insertOne({
+        _id: id,
         name,
         price,
-        category: { id: categoryId, name: catRows[0].name }
+        categoryId
+    })
+
+    return {
+        id,
+        name,
+        price,
+        category: { id: categoryId, name: category.name }
     }
 }
 
@@ -125,32 +135,17 @@ export async function updateMenuItem(
     id: number,
     updates: { name?: string; price?: number; categoryId?: number }
 ): Promise<MenuItem | null> {
-    const pool = await ensureInitialized()
-    const [existingRows] = await pool.execute<mysql.RowDataPacket[]>(
-        'SELECT * FROM menu_items WHERE id = ?',
-        [id]
+    const db = await ensureInitialized()
+    const result = await db.collection<DbMenuItem>('menu_items').updateOne(
+        { _id: id },
+        { $set: updates }
     )
-    if (existingRows.length === 0) return null
-
-    const existing = existingRows[0]
-    const name = updates.name ?? existing.name
-    const price = updates.price ?? existing.price
-    const categoryId = updates.categoryId ?? existing.category_id
-
-    await pool.execute('UPDATE menu_items SET name = ?, price = ?, category_id = ? WHERE id = ?', [
-        name,
-        price,
-        categoryId,
-        id,
-    ])
-    return (await getMenuItem(id))!
+    if (result.matchedCount === 0) return null
+    return (await getMenuItem(id)) || null
 }
 
 export async function deleteMenuItem(id: number): Promise<boolean> {
-    const pool = await ensureInitialized()
-    const [result] = await pool.execute<mysql.ResultSetHeader>(
-        'DELETE FROM menu_items WHERE id = ?',
-        [id]
-    )
-    return result.affectedRows > 0
+    const db = await ensureInitialized()
+    const result = await db.collection<DbMenuItem>('menu_items').deleteOne({ _id: id })
+    return result.deletedCount > 0
 }

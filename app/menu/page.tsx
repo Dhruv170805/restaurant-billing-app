@@ -7,11 +7,11 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { formatPriceWithSettings } from '@/lib/pricing'
 import { useMenu, useCategories, useSettings } from '@/hooks/useData'
 
-import type { Category, MenuItem, AppSettings } from '@/types'
+import type { MenuItem } from '@/types'
 
 export default function MenuPage() {
   const { items, mutate: mutateMenu, isLoading: menuLoading } = useMenu()
-  const { categories, mutate: mutateCats, isLoading: catsLoading } = useCategories()
+  const { categories, mutate: mutateCats } = useCategories()
   const [selectedCategory, setSelectedCategory] = useState('All')
   const { settings } = useSettings()
   const [searchQuery, setSearchQuery] = useState('')
@@ -405,6 +405,28 @@ export default function MenuPage() {
                       {item.category.name}
                     </span>
                     <div style={{ display: 'flex', gap: '0.3rem' }}>
+                      <button
+                        onClick={() => openEditModal(item)}
+                        style={{
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '7px',
+                          padding: '0.25rem 0.5rem',
+                          cursor: 'pointer',
+                          fontSize: '0.65rem',
+                          color: 'var(--foreground-muted)',
+                          transition: 'all 0.15s',
+                        }}
+                        title="Edit"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                        }}
+                      >
+                        ✏️
+                      </button>
                       <button
                         onClick={() => handleDeleteItem(item.id)}
                         style={{

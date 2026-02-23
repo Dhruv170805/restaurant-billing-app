@@ -1,0 +1,858 @@
+{
+  "categories": [
+    {
+      "name": "PAPAD"
+    },
+    {
+      "name": "PAPDI"
+    },
+    {
+      "name": "SOUP"
+    },
+    {
+      "name": "STARTERS"
+    },
+    {
+      "name": "SIZZLER"
+    },
+    {
+      "name": "CHINESE"
+    },
+    {
+      "name": "PANEER"
+    },
+    {
+      "name": "CHEESE"
+    },
+    {
+      "name": "KAJU"
+    },
+    {
+      "name": "VEGETABLES"
+    },
+    {
+      "name": "SEV"
+    },
+    {
+      "name": "DUETMIX"
+    },
+    {
+      "name": "DAL"
+    },
+    {
+      "name": "CHANA"
+    },
+    {
+      "name": "BIRYANI"
+    },
+    {
+      "name": "RICE & PULVA"
+    },
+    {
+      "name": "ROTI - NAAN"
+    },
+    {
+      "name": "CHHAS - DHAI"
+    },
+    {
+      "name": "KATHIYAWADI SPECIAL"
+    }
+  ],
+  "items": [
+    {
+      "name": "ROSTED PAPAD",
+      "price": 15,
+      "category": "PAPAD"
+    },
+    {
+      "name": "FRY PAPAD",
+      "price": 20,
+      "category": "PAPAD"
+    },
+    {
+      "name": "MASALA PAPAD",
+      "price": 40,
+      "category": "PAPAD"
+    },
+    {
+      "name": "CHEESE MASALA PAPAD",
+      "price": 60,
+      "category": "PAPAD"
+    },
+    {
+      "name": "ROST. PAPDI",
+      "price": 20,
+      "category": "PAPDI"
+    },
+    {
+      "name": "ROST. MASALA PAPDI",
+      "price": 60,
+      "category": "PAPDI"
+    },
+    {
+      "name": "CHEESEY MASALA PAPDI",
+      "price": 70,
+      "category": "PAPDI"
+    },
+    {
+      "name": "HOT & SOUR SOUP",
+      "price": 90,
+      "category": "SOUP"
+    },
+    {
+      "name": "MANCHIW SOUP",
+      "price": 90,
+      "category": "SOUP"
+    },
+    {
+      "name": "POTATO SIZZLING",
+      "price": 150,
+      "category": "STARTERS"
+    },
+    {
+      "name": "BABYCON CHILLI DRY",
+      "price": 160,
+      "category": "STARTERS"
+    },
+    {
+      "name": "MUSHROOM CHILLI DRY",
+      "price": 180,
+      "category": "STARTERS"
+    },
+    {
+      "name": "VEG. CRISPY",
+      "price": 180,
+      "category": "STARTERS"
+    },
+    {
+      "name": "HARA-BHARA KAWAB",
+      "price": 180,
+      "category": "STARTERS"
+    },
+    {
+      "name": "PANEER 65",
+      "price": 190,
+      "category": "STARTERS"
+    },
+    {
+      "name": "PANEER CHILLI DRY",
+      "price": 190,
+      "category": "STARTERS"
+    },
+    {
+      "name": "CORN SIZZLING",
+      "price": 210,
+      "category": "STARTERS"
+    },
+    {
+      "name": "CHEESE CHILLI DRY",
+      "price": 240,
+      "category": "STARTERS"
+    },
+    {
+      "name": "PANEER KACH-KACH",
+      "price": 240,
+      "category": "STARTERS"
+    },
+    {
+      "name": "CHEESE CORN SIZZLING",
+      "price": 250,
+      "category": "STARTERS"
+    },
+    {
+      "name": "PANEER TIKKA DRY",
+      "price": 270,
+      "category": "STARTERS"
+    },
+    {
+      "name": "LASANIYA PANEER TIKKA DRY",
+      "price": 300,
+      "category": "STARTERS"
+    },
+    {
+      "name": "CHEESE KUR-KURE",
+      "price": 300,
+      "category": "STARTERS"
+    },
+    {
+      "name": "GREEN PANEER TIKKA DRY",
+      "price": 300,
+      "category": "STARTERS"
+    },
+    {
+      "name": "SHREEJI SPECIAL SIZZLER",
+      "price": 300,
+      "category": "SIZZLER"
+    },
+    {
+      "name": "SINGAPORI NOODLES",
+      "price": 80,
+      "category": "CHINESE"
+    },
+    {
+      "name": "CHILLY GARLIC NOODLES",
+      "price": 90,
+      "category": "CHINESE"
+    },
+    {
+      "name": "SCHEZWAN NOOODLES",
+      "price": 90,
+      "category": "CHINESE"
+    },
+    {
+      "name": "MANCHURIAN GREAVY",
+      "price": 90,
+      "category": "CHINESE"
+    },
+    {
+      "name": "MANCHURIAN DRY",
+      "price": 90,
+      "category": "CHINESE"
+    },
+    {
+      "name": "MANCHURIAN NOODLES",
+      "price": 100,
+      "category": "CHINESE"
+    },
+    {
+      "name": "VEG. FRIED RICE",
+      "price": 100,
+      "category": "CHINESE"
+    },
+    {
+      "name": "SCHEZWAN RICE",
+      "price": 100,
+      "category": "CHINESE"
+    },
+    {
+      "name": "MANCHURIAN RICE",
+      "price": 100,
+      "category": "CHINESE"
+    },
+    {
+      "name": "PANEER CHILLY RICE",
+      "price": 180,
+      "category": "CHINESE"
+    },
+    {
+      "name": "PANEER KADHAI",
+      "price": 160,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER TAWA MASALA",
+      "price": 160,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER BUTTER MASALA",
+      "price": 170,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER TOOFANI",
+      "price": 170,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER TIKKA MASALA",
+      "price": 180,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER BHURJIA",
+      "price": 190,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER LASANIYA",
+      "price": 200,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER HARIYALI",
+      "price": 220,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER ANGARA",
+      "price": 220,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER KOFTA",
+      "price": 230,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER AMRITSARI",
+      "price": 240,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER KRMA",
+      "price": 290,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER CHINGARI",
+      "price": 300,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER TANDOORI MATKA",
+      "price": 300,
+      "category": "PANEER"
+    },
+    {
+      "name": "PANEER DESI CHULA",
+      "price": 400,
+      "category": "PANEER"
+    },
+    {
+      "name": "CHEESE BUTTER MASALA",
+      "price": 200,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE PESHAWARI",
+      "price": 210,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE TAKATAK",
+      "price": 210,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE ANGOORI",
+      "price": 220,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE LASANIYA",
+      "price": 220,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE GARLIC METHI MASALA",
+      "price": 220,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE RASILA",
+      "price": 220,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE ANGARA",
+      "price": 230,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE JAL-JALA",
+      "price": 250,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE KOFTA",
+      "price": 250,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE HYDERABADI",
+      "price": 250,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE MAKHMALI",
+      "price": 270,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE JAIPURI",
+      "price": 270,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE MAHARANI",
+      "price": 270,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE ZAM-ZAM",
+      "price": 270,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE TANDOORI MATKA",
+      "price": 320,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE LACHKO",
+      "price": 350,
+      "category": "CHEESE"
+    },
+    {
+      "name": "CHEESE DESI CHULA",
+      "price": 440,
+      "category": "CHEESE"
+    },
+    {
+      "name": "KAJU CURY",
+      "price": 200,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU TAWA MASALA",
+      "price": 200,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU HANDI",
+      "price": 200,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU BUTTER MASALA",
+      "price": 200,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU PESHAWARI",
+      "price": 200,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU TAKATAK",
+      "price": 220,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU ANGARA",
+      "price": 220,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU RASILA",
+      "price": 220,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU LASANIYA",
+      "price": 230,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU MATKA",
+      "price": 260,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU ZAM-ZAM",
+      "price": 270,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU MAKHMALI",
+      "price": 270,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU MAHAEAJA",
+      "price": 270,
+      "category": "KAJU"
+    },
+    {
+      "name": "KAJU TANDOORI",
+      "price": 320,
+      "category": "KAJU"
+    },
+    {
+      "name": "VEG. MIX",
+      "price": 100,
+      "category": "VEGETABLES"
+    },
+    {
+      "name": "VEG. HANDI",
+      "price": 110,
+      "category": "VEGETABLES"
+    },
+    {
+      "name": "VEG. KAHLAPUIR",
+      "price": 130,
+      "category": "VEGETABLES"
+    },
+    {
+      "name": "VEG. KEEMA",
+      "price": 150,
+      "category": "VEGETABLES"
+    },
+    {
+      "name": "VEG. KEEMA LASANIYA",
+      "price": 180,
+      "category": "VEGETABLES"
+    },
+    {
+      "name": "VEG. ANGARA",
+      "price": 180,
+      "category": "VEGETABLES"
+    },
+    {
+      "name": "SEV TOMATO",
+      "price": 90,
+      "category": "SEV"
+    },
+    {
+      "name": "SEV MASALA",
+      "price": 90,
+      "category": "SEV"
+    },
+    {
+      "name": "DESI LAXMI S.T.",
+      "price": 100,
+      "category": "SEV"
+    },
+    {
+      "name": "SEV LASANIYA",
+      "price": 120,
+      "category": "SEV"
+    },
+    {
+      "name": "SEV MALAIWALA",
+      "price": 140,
+      "category": "SEV"
+    },
+    {
+      "name": "PALAK PANEER",
+      "price": 180,
+      "category": "DUETMIX"
+    },
+    {
+      "name": "CHEESE - PANEER MARAMARI",
+      "price": 200,
+      "category": "DUETMIX"
+    },
+    {
+      "name": "KAJU - PANEER MASALEWALA",
+      "price": 200,
+      "category": "DUETMIX"
+    },
+    {
+      "name": "KAJU - CHEESE MARAMARI",
+      "price": 220,
+      "category": "DUETMIX"
+    },
+    {
+      "name": "DAL FRY",
+      "price": 90,
+      "category": "DAL"
+    },
+    {
+      "name": "DAL TADKA",
+      "price": 120,
+      "category": "DAL"
+    },
+    {
+      "name": "DAL DOUBLE TADKA",
+      "price": 140,
+      "category": "DAL"
+    },
+    {
+      "name": "CHANA MASALA",
+      "price": 100,
+      "category": "CHANA"
+    },
+    {
+      "name": "NIZAMI BIRYANI",
+      "price": 140,
+      "category": "BIRYANI"
+    },
+    {
+      "name": "TAWA BIRYANI",
+      "price": 150,
+      "category": "BIRYANI"
+    },
+    {
+      "name": "HYDERABADI BIRYANI",
+      "price": 160,
+      "category": "BIRYANI"
+    },
+    {
+      "name": "SPECIAL HANDI BIRYANI",
+      "price": 180,
+      "category": "BIRYANI"
+    },
+    {
+      "name": "JEERA RICE (HALF)",
+      "price": 60,
+      "category": "RICE & PULVA"
+    },
+    {
+      "name": "JEERA RICE (FULL)",
+      "price": 80,
+      "category": "RICE & PULVA"
+    },
+    {
+      "name": "MASALA RICE",
+      "price": 110,
+      "category": "RICE & PULVA"
+    },
+    {
+      "name": "VEG. PULAO",
+      "price": 120,
+      "category": "RICE & PULVA"
+    },
+    {
+      "name": "PANEER PULAO",
+      "price": 150,
+      "category": "RICE & PULVA"
+    },
+    {
+      "name": "KAJU - CHEESE PULAO",
+      "price": 180,
+      "category": "RICE & PULVA"
+    },
+    {
+      "name": "PALAKA - PANEER PULAO",
+      "price": 180,
+      "category": "RICE & PULVA"
+    },
+    {
+      "name": "SHREEJI SPECIAL RICE PLATTER",
+      "price": 240,
+      "category": "RICE & PULVA"
+    },
+    {
+      "name": "PLAIN CHAPATI",
+      "price": 10,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "PLAIN TANDOORI ROTI",
+      "price": 10,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "BUTTER CHAPATI",
+      "price": 15,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "BUTTER TANDOORI ROTI",
+      "price": 15,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "BUTTER NAAN",
+      "price": 30,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "CHILLI GARLIC NAAN",
+      "price": 50,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "SP. KULCHA",
+      "price": 60,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "PLAIN CHEESE NAAN",
+      "price": 170,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "CHEESE CHILLI GARLIC NAAN",
+      "price": 180,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "PIZZA NAAN",
+      "price": 200,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "PANEER NAAN",
+      "price": 200,
+      "category": "ROTI - NAAN"
+    },
+    {
+      "name": "PLAIN BUTTERMILK",
+      "price": 10,
+      "category": "CHHAS - DHAI"
+    },
+    {
+      "name": "PLAIN DAHI",
+      "price": 20,
+      "category": "CHHAS - DHAI"
+    },
+    {
+      "name": "MASALEWALA BUTTERMILK",
+      "price": 15,
+      "category": "CHHAS - DHAI"
+    },
+    {
+      "name": "ROASTED PAPAD",
+      "price": 10,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "ROASTED PAPDI",
+      "price": 20,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "FRIED PAPAD",
+      "price": 20,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "FRIED PAPDI",
+      "price": 30,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "WAGHARELO ROTLO (DRY)",
+      "price": 70,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "WAGHARELO ROTLO (DAHI)",
+      "price": 80,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "PIZZA ROTLO",
+      "price": 120,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "DAHI TIKHARI",
+      "price": 60,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "LASANIYA BATAKA",
+      "price": 70,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "BATAKA TAMETA RASAWALA",
+      "price": 70,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "BHINDI MASALA",
+      "price": 80,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "MAG MASALA",
+      "price": 80,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "DESI CHANA MASALA",
+      "price": 80,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "RINGAN NU BHARTU",
+      "price": 80,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "BHARELA KARELA",
+      "price": 80,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "SEV TAMETA",
+      "price": 80,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "SEV LASAN",
+      "price": 100,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "KAJU LASANIYA GATHIYA",
+      "price": 120,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "SHREEJI SPE. VEG. MIX",
+      "price": 120,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "FARALI SUKI BHAJI",
+      "price": 70,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "ROTLI",
+      "price": 10,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "BAJRINO ROTLO",
+      "price": 20,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "MAKAAI NO ROTLO",
+      "price": 20,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "ROTLI (GHEE)",
+      "price": 15,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "BAJRINO ROTLO (GHEE)",
+      "price": 30,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "MAKAAI NO ROTLO (GHEE)",
+      "price": 30,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "KHICHDI - KADHI",
+      "price": 70,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "VAGHARELI KHICHDI",
+      "price": 80,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "SPE. RAJWADI KHICHDI",
+      "price": 100,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "GHEE",
+      "price": 20,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "GUD",
+      "price": 10,
+      "category": "KATHIYAWADI SPECIAL"
+    },
+    {
+      "name": "SIMPLE DAHI",
+      "price": 20,
+      "category": "KATHIYAWADI SPECIAL"
+    }
+  ]
+}

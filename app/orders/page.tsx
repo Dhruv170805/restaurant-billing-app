@@ -6,7 +6,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { formatPriceWithSettings } from '@/lib/pricing'
 import { useOrders, useSettings } from '@/hooks/useData'
 
-import type { Order, AppSettings } from '@/types'
+// No need to import Order or AppSettings when not directly instantiating them here
 
 export default function OrdersPage() {
   const { orders, isLoading: ordersLoading } = useOrders()
