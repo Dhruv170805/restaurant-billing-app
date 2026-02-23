@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Toaster } from 'sonner'
 import { getSettingsCompat } from '@/lib/settings'
 
+export const dynamic = 'force-dynamic'
+
 const inter = Inter({ subsets: ['latin'] })
 
 export async function generateMetadata(): Promise<Metadata> {
