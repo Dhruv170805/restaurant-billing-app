@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@/lib/db'
 import { handleApiError, ValidationError, ConflictError } from '@/lib/errors'
 import { validateStringLength, validatePositiveInteger } from '@/lib/validation'

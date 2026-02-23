@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import {
   getOrders,
   getOrdersPaginated,
@@ -27,15 +29,7 @@ export async function GET(request: Request) {
     }
 
     const orders = await getOrders()
-    // Transform to match frontend expectations
-    const result = orders.map((order) => ({
-      ...order,
-      items: order.items.map((item) => ({
-        ...item,
-        menuItem: { name: item.name },
-      })),
-    }))
-    return NextResponse.json(result)
+    return NextResponse.json(orders)
   } catch (error) {
     return handleApiError(error)
   }

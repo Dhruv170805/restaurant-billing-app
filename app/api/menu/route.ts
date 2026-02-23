@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { getMenuItems, addMenuItem } from '@/lib/db'
 import { handleApiError, ValidationError } from '@/lib/errors'
 import {
@@ -10,13 +12,7 @@ import {
 export async function GET() {
   try {
     const items = await getMenuItems()
-    const result = items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      category: { id: item.categoryId, name: item.category },
-    }))
-    return NextResponse.json(result)
+    return NextResponse.json(items)
   } catch (error) {
     return handleApiError(error)
   }
@@ -38,15 +34,7 @@ export async function POST(request: Request) {
       throw new ValidationError('Invalid category ID — category does not exist', { categoryId })
     }
 
-    return NextResponse.json(
-      {
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        category: { id: item.categoryId, name: item.category },
-      },
-      { status: 201 }
-    )
+    return NextResponse.json(item, { status: 201 })
   } catch (error) {
     return handleApiError(error)
   }

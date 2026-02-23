@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { getSettings, updateSettings } from '@/lib/db'
 import { handleApiError } from '@/lib/errors'
 import { validateSettingsUpdate } from '@/lib/validation'

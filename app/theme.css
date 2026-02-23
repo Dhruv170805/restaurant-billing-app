@@ -34,14 +34,14 @@
   --foreground-subtle: #71717a;
 
   /* Primary Palette */
-  --primary: #6c63ff;
-  --primary-light: #8f88ff;
-  --primary-glow: rgba(108, 99, 255, 0.3);
-  --primary-gradient: linear-gradient(135deg, #6c63ff 0%, #48c6ef 100%);
+  --primary: #f37c22;
+  --primary-light: #ff9d52;
+  --primary-glow: rgba(243, 124, 34, 0.3);
+  --primary-gradient: linear-gradient(135deg, #f37c22 0%, #e61c24 100%);
 
   /* Accent */
-  --accent: #a855f7;
-  --accent-glow: rgba(168, 85, 247, 0.3);
+  --accent: #e61c24;
+  --accent-glow: rgba(230, 28, 36, 0.3);
 
   /* Semantic Colors */
   --success: #34d399;
@@ -114,7 +114,7 @@ a {
 }
 
 ::selection {
-  background: rgba(108, 99, 255, 0.35);
+  background: rgba(243, 124, 34, 0.35);
   color: #fff;
 }
 
@@ -129,9 +129,9 @@ body::before {
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(ellipse 80% 50% at 15% 8%, rgba(108, 99, 255, 0.12), transparent 55%),
-    radial-gradient(ellipse 55% 45% at 85% 85%, rgba(72, 198, 239, 0.08), transparent 50%),
-    radial-gradient(ellipse 65% 35% at 50% 50%, rgba(168, 85, 247, 0.06), transparent 50%),
+    radial-gradient(ellipse 80% 50% at 15% 8%, rgba(243, 124, 34, 0.12), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 85%, rgba(230, 28, 36, 0.08), transparent 50%),
+    radial-gradient(ellipse 65% 35% at 50% 50%, rgba(230, 28, 36, 0.06), transparent 50%),
     linear-gradient(160deg, var(--bg-gradient-1), var(--bg-gradient-2), var(--bg-gradient-3));
   animation: bgShift 25s ease-in-out infinite alternate;
 }
@@ -152,7 +152,7 @@ body::after {
   width: 500px;
   height: 500px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(108, 99, 255, 0.06), transparent 70%);
+  background: radial-gradient(circle, rgba(243, 124, 34, 0.06), transparent 70%);
   top: -150px;
   right: -150px;
   z-index: -1;
@@ -361,7 +361,7 @@ h3 {
 .card:hover {
   border-color: var(--glass-border-hover);
   box-shadow: var(--glass-shadow), var(--glass-inner-glow),
-    0 0 24px rgba(108, 99, 255, 0.06);
+    0 0 24px rgba(243, 124, 34, 0.06);
 }
 
 
@@ -661,19 +661,21 @@ select.form-input {
    ───────────────────────────────────── */
 
 .navbar {
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 1px solid var(--glass-border);
+  background: rgba(18, 18, 22, 0.45);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  backdrop-filter: blur(40px) saturate(200%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 0 var(--space-8);
   height: 4.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  transform: translateZ(0);
 }
 
 .navbar::after {
@@ -684,10 +686,10 @@ select.form-input {
   right: 0;
   height: 1px;
   background: linear-gradient(90deg,
-      transparent 5%,
-      rgba(108, 99, 255, 0.25),
-      rgba(72, 198, 239, 0.15),
-      transparent 95%);
+      rgba(243, 124, 34, 0) 5%,
+      rgba(243, 124, 34, 0.25) 40%,
+      rgba(230, 28, 36, 0.15) 60%,
+      rgba(230, 28, 36, 0) 95%);
 }
 
 .logo a,
@@ -884,8 +886,8 @@ select.form-input {
 
 .menu-item-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(108, 99, 255, 0.5);
-  box-shadow: 0 8px 28px rgba(108, 99, 255, 0.12), var(--glass-inner-glow);
+  border-color: rgba(243, 124, 34, 0.5);
+  box-shadow: 0 8px 28px rgba(243, 124, 34, 0.12), var(--glass-inner-glow);
 }
 
 .menu-item-card:active {

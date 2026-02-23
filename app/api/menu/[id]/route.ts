@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { getMenuItem, updateMenuItem, deleteMenuItem } from '@/lib/db'
 import { handleApiError, NotFoundError, ValidationError } from '@/lib/errors'
 import {
@@ -20,10 +22,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       throw new NotFoundError('Menu item', itemId)
     }
 
-    return NextResponse.json({
-      ...item,
-      category: { id: item.categoryId, name: item.category },
-    })
+    return NextResponse.json(item)
   } catch (error) {
     return handleApiError(error)
   }
@@ -59,10 +58,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       throw new NotFoundError('Menu item', itemId)
     }
 
-    return NextResponse.json({
-      ...updated,
-      category: { id: updated.categoryId, name: updated.category },
-    })
+    return NextResponse.json(updated)
   } catch (error) {
     return handleApiError(error)
   }

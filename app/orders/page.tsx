@@ -1,47 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { toast } from 'sonner'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { formatPriceWithSettings } from '@/lib/pricing'
+import { useOrders, useSettings } from '@/hooks/useData'
 
-interface Order {
-  id: number
-  createdAt: string
-  total: number
-  status: string
-  items: { menuItem: { name: string } }[]
-}
-
-interface Settings {
-  currencyLocale: string
-  currencyCode: string
-}
+import type { Order, AppSettings } from '@/types'
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [settings, setSettings] = useState<Settings | null>(null)
-
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await fetch('/api/orders')
-        if (!res.ok) throw new Error('Failed to fetch')
-        const data = await res.json()
-        setOrders(data)
-      } catch (err) {
-        console.error('Failed to load orders', err)
-        toast.error('Failed to load orders')
-      }
-      setLoading(false)
-    }
-    fetchOrders()
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then(setSettings)
-      .catch(console.error)
-  }, [])
+  const { orders, isLoading: ordersLoading } = useOrders()
+  const { settings } = useSettings()
 
   const fmtPrice = (amount: number) => {
     if (!settings) return `₹${amount.toFixed(2)}`
@@ -50,22 +19,18 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1>Orders History</h1>
-          <p
-            style={{ color: 'var(--foreground-muted)', marginTop: '0.25rem', fontSize: '0.95rem' }}
-          >
-            View and manage all past orders
-          </p>
-        </div>
-        <Link href="/pos" className="btn btn-primary">
-          ⚡ New Order
-        </Link>
-      </div>
+      <PageHeader
+        title="Orders History"
+        description="View and manage all past orders"
+        action={
+          <Link href="/pos" className="btn btn-primary">
+            ⚡ New Order
+          </Link>
+        }
+      />
 
       <div className="card">
-        {loading ? (
+        {ordersLoading ? (
           <p style={{ color: 'var(--foreground-subtle)', padding: '2rem', textAlign: 'center' }}>
             Loading orders...
           </p>
@@ -96,11 +61,7 @@ export default function OrdersPage() {
                   <td>{order.items.length} items</td>
                   <td style={{ fontWeight: 600 }}>{fmtPrice(order.total)}</td>
                   <td>
-                    <span
-                      className={`badge ${order.status === 'PAID' ? 'badge-success' : order.status === 'CANCELLED' ? 'badge-danger' : 'badge-warning'}`}
-                    >
-                      {order.status}
-                    </span>
+                    <StatusBadge status={order.status} />
                   </td>
                   <td>
                     <Link

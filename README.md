@@ -1,5 +1,7 @@
 # Restaurant Billing & POS System
 
+![POS Dashboard Screenshot](./public/screenshot.png)
+
 A modern, fast, and feature-rich Point of Sale (POS) and billing system designed specifically for restaurants. It features a stunning dark-mode interface, robust table management, and comprehensive order tracking.
 
 ## Features

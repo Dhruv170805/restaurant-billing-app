@@ -1,53 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { formatPriceWithSettings } from '@/lib/pricing'
+import { useTables, useSettings } from '@/hooks/useData'
 
-interface TableInfo {
-  number: number
-  status: 'available' | 'occupied'
-  order: {
-    id: number
-    tokenNumber: number
-    total: number
-    itemCount: number
-    createdAt: string
-  } | null
-}
-
-interface Settings {
-  currencyLocale: string
-  currencyCode: string
-}
+import type { TableInfo, AppSettings } from '@/types'
 
 export default function Home() {
   const router = useRouter()
-  const [tables, setTables] = useState<TableInfo[]>([])
-  const [loading, setLoading] = useState(true)
-  const [settings, setSettings] = useState<Settings | null>(null)
-
-  const fetchTables = async () => {
-    try {
-      const res = await fetch('/api/tables')
-      if (!res.ok) throw new Error('Failed to fetch')
-      const data = await res.json()
-      setTables(data)
-    } catch (err) {
-      console.error('Failed to load tables', err)
-    }
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    fetchTables()
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then(setSettings)
-      .catch(console.error)
-    const interval = setInterval(fetchTables, 10000)
-    return () => clearInterval(interval)
-  }, [])
+  const { tables, isLoading: tablesLoading } = useTables()
+  const { settings } = useSettings()
 
   const fmtPrice = (amount: number) => {
     if (!settings) return `₹${amount.toFixed(2)}`
@@ -67,48 +31,44 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1>Tables</h1>
-          <p
-            style={{ color: 'var(--foreground-muted)', marginTop: '0.25rem', fontSize: '0.95rem' }}
-          >
-            Tap an available table to start an order
-          </p>
-        </div>
-        <div className="flex gap-4 items-center">
-          <div className="flex gap-3 items-center" style={{ fontSize: '0.85rem' }}>
-            <span className="flex items-center gap-2">
-              <span
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  background: 'var(--success)',
-                  display: 'inline-block',
-                  boxShadow: '0 0 8px var(--success-glow)',
-                }}
-              ></span>
-              <span style={{ color: 'var(--foreground-muted)' }}>{availableCount} Available</span>
-            </span>
-            <span className="flex items-center gap-2">
-              <span
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  background: 'var(--danger)',
-                  display: 'inline-block',
-                  boxShadow: '0 0 8px rgba(248,113,113,0.4)',
-                }}
-              ></span>
-              <span style={{ color: 'var(--foreground-muted)' }}>{occupiedCount} Occupied</span>
-            </span>
+      <PageHeader
+        title="Tables"
+        description="Tap an available table to start an order"
+        action={
+          <div className="flex gap-4 items-center">
+            <div className="flex gap-3 items-center" style={{ fontSize: '0.85rem' }}>
+              <span className="flex items-center gap-2">
+                <span
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    background: 'var(--success)',
+                    display: 'inline-block',
+                    boxShadow: '0 0 8px var(--success-glow)',
+                  }}
+                ></span>
+                <span style={{ color: 'var(--foreground-muted)' }}>{availableCount} Available</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <span
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    background: 'var(--danger)',
+                    display: 'inline-block',
+                    boxShadow: '0 0 8px rgba(248,113,113,0.4)',
+                  }}
+                ></span>
+                <span style={{ color: 'var(--foreground-muted)' }}>{occupiedCount} Occupied</span>
+              </span>
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      {loading ? (
+      {tablesLoading ? (
         <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--foreground-subtle)' }}>
           <p style={{ fontSize: '1.1rem' }}>Loading tables...</p>
         </div>
@@ -128,9 +88,7 @@ export default function Home() {
             >
               <div className="table-card-header">
                 <span className="table-card-number">{table.number}</span>
-                <span className={`table-card-badge ${table.status}`}>
-                  {table.status === 'available' ? '● Free' : '● Occupied'}
-                </span>
+                <StatusBadge status={table.status} className="table-card-badge" />
               </div>
 
               {table.status === 'occupied' && table.order ? (

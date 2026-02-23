@@ -1,54 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { formatPriceWithSettings } from '@/lib/pricing'
-import type { AppSettings, Order } from '@/lib/db'
-
-interface DashboardStats {
-  todayRevenue: number
-  cashRevenue: number
-  onlineRevenue: number
-  todayOrders: number
-  pendingOrders: number
-  recentOrders: Order[]
-}
+import { useDashboard, useSettings } from '@/hooks/useData'
+import type { Order } from '@/types'
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [settings, setSettings] = useState<AppSettings | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/dashboard').then((r) => r.json()),
-      fetch('/api/settings').then((r) => r.json()),
-    ])
-      .then(([dashboardStats, appSettings]) => {
-        setStats(dashboardStats)
-        setSettings(appSettings)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error(err)
-        setLoading(false)
-      })
-  }, [])
+  const { stats, isLoading: statsLoading } = useDashboard()
+  const { settings } = useSettings()
 
   const fmtPrice = (amount: number) => {
     if (!settings) return `₹${amount.toFixed(2)}`
     return formatPriceWithSettings(amount, settings.currencyLocale, settings.currencyCode)
   }
 
-  if (loading)
+  if (statsLoading) {
     return (
       <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--foreground-muted)' }}>
         Loading sales dashboard...
       </div>
     )
+  }
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6">
-      <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Sales Dashboard</h1>
+      <PageHeader title="Sales Dashboard" />
 
       <div
         className="grid"
