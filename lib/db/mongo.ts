@@ -1,24 +1,39 @@
-import { MongoClient, Db } from 'mongodb'
+import { MongoClient } from 'mongodb'
 import { initializeSchema } from './init'
+import type { Db } from 'mongodb'
 
-// The MongoDB connection string
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/restaurant_db'
 
-const globalForMongo = globalThis as unknown as {
-  mongoClient: MongoClient | undefined
+const options = {}
+
+let client: MongoClient
+let clientPromise: Promise<MongoClient>
+
+if (!process.env.MONGODB_URI) {
+  console.warn('Please add your Mongo URI to .env.local')
 }
 
-async function getClient(): Promise<MongoClient> {
-  if (!globalForMongo.mongoClient) {
-    globalForMongo.mongoClient = new MongoClient(uri)
-    await globalForMongo.mongoClient.connect()
+// In development mode, use a global variable so that the value
+// is preserved across module reloads caused by HMR (Hot Module Replacement).
+if (process.env.NODE_ENV === 'development') {
+  const globalWithMongo = global as typeof globalThis & {
+    _mongoClientPromise?: Promise<MongoClient>
   }
-  return globalForMongo.mongoClient
+
+  if (!globalWithMongo._mongoClientPromise) {
+    client = new MongoClient(uri, options)
+    globalWithMongo._mongoClientPromise = client.connect()
+  }
+  clientPromise = globalWithMongo._mongoClientPromise
+} else {
+  // In production mode, it's best to not use a global variable.
+  client = new MongoClient(uri, options)
+  clientPromise = client.connect()
 }
 
-async function getDb(): Promise<Db> {
-  const client = await getClient()
-  return client.db() // Uses the database name specified in the URI
+export async function getDb(): Promise<Db> {
+  const connectedClient = await clientPromise
+  return connectedClient.db()
 }
 
 let _initialized = false
