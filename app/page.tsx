@@ -14,7 +14,7 @@ export default function Home() {
   const { settings } = useSettings()
 
   const fmtPrice = (amount: number) => {
-    if (!settings) return `₹${amount.toFixed(2)}`
+    if (!settings) return `$${amount.toFixed(2)}`
     return formatPriceWithSettings(amount, settings.currencyLocale, settings.currencyCode)
   }
 

@@ -65,7 +65,7 @@ function POSContent() {
 
   const fmtPrice = (amount: number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount
-    if (!settings) return `₹${num.toFixed(2)}`
+    if (!settings) return `$${num.toFixed(2)}`
     return formatPriceWithSettings(num, settings.currencyLocale, settings.currencyCode)
   }
 

@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const { settings } = useSettings()
 
   const fmtPrice = (amount: number) => {
-    if (!settings) return `₹${amount.toFixed(2)}`
+    if (!settings) return `$${amount.toFixed(2)}`
     return formatPriceWithSettings(amount, settings.currencyLocale, settings.currencyCode)
   }
 
@@ -60,7 +60,7 @@ export default function DashboardPage() {
         </div>
         <div className="card" style={{ padding: '2rem', borderTop: '4px solid var(--warning)' }}>
           <p style={{ color: 'var(--foreground-muted)', fontSize: '1rem', marginBottom: '0.5rem' }}>
-            Unpaid Dues (Baki)
+            Unpaid Dues
           </p>
           <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--warning-text)' }}>
             {fmtPrice(stats?.unpaidRevenue || 0)}
@@ -124,7 +124,7 @@ export default function DashboardPage() {
           color: 'var(--warning)',
         }}
       >
-        📓 Unpaid Bills (Baki)
+        📓 Unpaid Bills
       </h2>
       <div className="card" style={{ padding: '0', border: '1px solid var(--warning)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>

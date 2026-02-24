@@ -59,7 +59,7 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
       </div>
     )
 
-  const locale = settings?.currencyLocale || 'en-IN'
+  const locale = settings?.currencyLocale || 'en-US'
   const orderDate = new Date(order.createdAt)
   const timeStr = orderDate.toLocaleTimeString(locale, {
     hour: '2-digit',

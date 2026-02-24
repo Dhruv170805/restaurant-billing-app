@@ -71,7 +71,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   }, [resolvedParams.id, router])
 
   const fmtPrice = (amount: number) => {
-    if (!settings) return `₹${amount.toFixed(2)}`
+    if (!settings) return `$${amount.toFixed(2)}`
     return formatPriceWithSettings(amount, settings.currencyLocale, settings.currencyCode)
   }
 
@@ -445,7 +445,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
               }}
             >
               <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>📓</span>
-              Unpaid (Baki)
+              Unpaid Dues
             </button>
           </div>
 
