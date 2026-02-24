@@ -215,16 +215,36 @@ export default function DashboardPage() {
                   {fmtPrice(order.total)}
                 </td>
                 <td
-                  style={{ textAlign: 'center', padding: '1.25rem 1.5rem' }}
+                  style={{ textAlign: 'center', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}
                   className="print-area-hide"
                 >
                   <a
                     href={`/orders/${order.id}`}
                     className="btn btn-secondary"
-                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', width: '100%' }}
                   >
                     Settle Bill
                   </a>
+                  {order.customerPhone && (
+                    <a
+                      href={`https://wa.me/${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                        `Hello ${order.customerName || 'there'},\n\nThis is a friendly reminder from ${settings?.restaurantName || 'our restaurant'} regarding your unpaid bill of ${fmtPrice(order.total)} for Order #${order.id}.\n\nPlease arrange a settlement at your earliest convenience. Thank you!`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn"
+                      style={{
+                        padding: '0.4rem 0.8rem',
+                        fontSize: '0.85rem',
+                        backgroundColor: '#25D366',
+                        color: 'white',
+                        border: 'none',
+                        width: '100%'
+                      }}
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
                 </td>
               </tr>
             ))}
