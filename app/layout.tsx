@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './theme.css'
 import Link from 'next/link'
@@ -9,11 +9,28 @@ export const dynamic = 'force-dynamic'
 
 const inter = Inter({ subsets: ['latin'] })
 
+export const viewport: Viewport = {
+  themeColor: '#d97706',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettingsCompat()
   return {
     title: settings.restaurant.name,
     description: `${settings.restaurant.name} — Restaurant Billing & POS System`,
+    manifest: '/manifest.json',
+    icons: {
+      apple: '/icon-192x192.png',
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: settings.restaurant.name,
+    },
   }
 }
 

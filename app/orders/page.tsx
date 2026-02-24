@@ -40,41 +40,43 @@ export default function OrdersPage() {
             <p>No orders yet. Create one from the POS terminal.</p>
           </div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Order #</th>
-                <th>Date</th>
-                <th>Items</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr key={order.id}>
-                  <td style={{ fontWeight: 600, color: 'var(--primary-light)' }}>#{order.id}</td>
-                  <td style={{ color: 'var(--foreground-muted)' }}>
-                    {new Date(order.createdAt).toLocaleString()}
-                  </td>
-                  <td>{order.items.length} items</td>
-                  <td style={{ fontWeight: 600 }}>{fmtPrice(order.total)}</td>
-                  <td>
-                    <StatusBadge status={order.status} />
-                  </td>
-                  <td>
-                    <Link
-                      href={`/orders/${order.id}`}
-                      className="btn btn-secondary text-sm py-1 px-3"
-                    >
-                      View Bill
-                    </Link>
-                  </td>
+          <div className="table-responsive">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Order #</th>
+                  <th>Date</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id}>
+                    <td style={{ fontWeight: 600, color: 'var(--primary-light)' }}>#{order.id}</td>
+                    <td style={{ color: 'var(--foreground-muted)' }}>
+                      {new Date(order.createdAt).toLocaleString()}
+                    </td>
+                    <td>{order.items.length} items</td>
+                    <td style={{ fontWeight: 600 }}>{fmtPrice(order.total)}</td>
+                    <td>
+                      <StatusBadge status={order.status} />
+                    </td>
+                    <td>
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="btn btn-secondary text-sm py-1 px-3"
+                      >
+                        View Bill
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

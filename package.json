@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "lucide-react": "^0.575.0",
     "mongodb": "^7.1.0",
     "next": "^16.1.6",

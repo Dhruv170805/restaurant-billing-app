@@ -127,139 +127,141 @@ export default function DashboardPage() {
         📓 Unpaid Bills
       </h2>
       <div className="card" style={{ padding: '0', border: '1px solid var(--warning)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr
-              style={{
-                borderBottom: '1px solid var(--glass-border)',
-                background: 'rgba(255,255,255,0.02)',
-              }}
-            >
-              <th
+        <div className="table-responsive">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr
                 style={{
-                  textAlign: 'left',
-                  padding: '1.25rem 1.5rem',
-                  fontWeight: 600,
-                  color: 'var(--foreground-muted)',
+                  borderBottom: '1px solid var(--glass-border)',
+                  background: 'rgba(255,255,255,0.02)',
                 }}
               >
-                Order ID / Table
-              </th>
-              <th
-                style={{
-                  textAlign: 'left',
-                  padding: '1.25rem 1.5rem',
-                  fontWeight: 600,
-                  color: 'var(--foreground-muted)',
-                }}
-              >
-                Customer Info
-              </th>
-              <th
-                style={{
-                  textAlign: 'right',
-                  padding: '1.25rem 1.5rem',
-                  fontWeight: 600,
-                  color: 'var(--foreground-muted)',
-                }}
-              >
-                Total Dues
-              </th>
-              <th
-                style={{
-                  textAlign: 'center',
-                  padding: '1.25rem 1.5rem',
-                  fontWeight: 600,
-                  color: 'var(--foreground-muted)',
-                }}
-                className="print-area-hide"
-              >
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {stats?.unpaidOrders?.map((order: Order) => (
-              <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>
-                  #{order.id} {order.tableNumber && `(T-${order.tableNumber})`}
-                  <br />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--foreground-muted)' }}>
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </span>
-                </td>
-                <td style={{ padding: '1.25rem 1.5rem' }}>
-                  <div style={{ fontWeight: 600, color: 'var(--primary-light)' }}>
-                    {order.customerName || 'Unknown'}
-                  </div>
-                  {order.customerPhone && (
-                    <div
-                      style={{
-                        fontSize: '0.8rem',
-                        color: 'var(--foreground-muted)',
-                        marginTop: '0.2rem',
-                      }}
-                    >
-                      📞 {order.customerPhone}
-                    </div>
-                  )}
-                </td>
-                <td
+                <th
+                  style={{
+                    textAlign: 'left',
+                    padding: '1.25rem 1.5rem',
+                    fontWeight: 600,
+                    color: 'var(--foreground-muted)',
+                  }}
+                >
+                  Order ID / Table
+                </th>
+                <th
+                  style={{
+                    textAlign: 'left',
+                    padding: '1.25rem 1.5rem',
+                    fontWeight: 600,
+                    color: 'var(--foreground-muted)',
+                  }}
+                >
+                  Customer Info
+                </th>
+                <th
                   style={{
                     textAlign: 'right',
                     padding: '1.25rem 1.5rem',
-                    fontWeight: 700,
-                    color: 'var(--warning)',
+                    fontWeight: 600,
+                    color: 'var(--foreground-muted)',
                   }}
                 >
-                  {fmtPrice(order.total)}
-                </td>
-                <td
-                  style={{ textAlign: 'center', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}
+                  Total Dues
+                </th>
+                <th
+                  style={{
+                    textAlign: 'center',
+                    padding: '1.25rem 1.5rem',
+                    fontWeight: 600,
+                    color: 'var(--foreground-muted)',
+                  }}
                   className="print-area-hide"
                 >
-                  <a
-                    href={`/orders/${order.id}`}
-                    className="btn btn-secondary"
-                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', width: '100%' }}
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats?.unpaidOrders?.map((order: Order) => (
+                <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>
+                    #{order.id} {order.tableNumber && `(T-${order.tableNumber})`}
+                    <br />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--foreground-muted)' }}>
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </span>
+                  </td>
+                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--primary-light)' }}>
+                      {order.customerName || 'Unknown'}
+                    </div>
+                    {order.customerPhone && (
+                      <div
+                        style={{
+                          fontSize: '0.8rem',
+                          color: 'var(--foreground-muted)',
+                          marginTop: '0.2rem',
+                        }}
+                      >
+                        📞 {order.customerPhone}
+                      </div>
+                    )}
+                  </td>
+                  <td
+                    style={{
+                      textAlign: 'right',
+                      padding: '1.25rem 1.5rem',
+                      fontWeight: 700,
+                      color: 'var(--warning)',
+                    }}
                   >
-                    Settle Bill
-                  </a>
-                  {order.customerPhone && (
+                    {fmtPrice(order.total)}
+                  </td>
+                  <td
+                    style={{ textAlign: 'center', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}
+                    className="print-area-hide"
+                  >
                     <a
-                      href={`https://wa.me/${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                        `Hello ${order.customerName || 'there'},\n\nThis is a friendly reminder from ${settings?.restaurantName || 'our restaurant'} regarding your unpaid bill of ${fmtPrice(order.total)} for Order #${order.id}.\n\nPlease arrange a settlement at your earliest convenience. Thank you!`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn"
-                      style={{
-                        padding: '0.4rem 0.8rem',
-                        fontSize: '0.85rem',
-                        backgroundColor: '#25D366',
-                        color: 'white',
-                        border: 'none',
-                        width: '100%'
-                      }}
+                      href={`/orders/${order.id}`}
+                      className="btn btn-secondary"
+                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', width: '100%' }}
                     >
-                      💬 WhatsApp
+                      Settle Bill
                     </a>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {stats?.unpaidOrders?.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  style={{ textAlign: 'center', padding: '2rem', color: 'var(--foreground-muted)' }}
-                >
-                  No unpaid bills! 🎉
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                    {order.customerPhone && (
+                      <a
+                        href={`https://wa.me/${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                          `Hello ${order.customerName || 'there'},\n\nThis is a friendly reminder from ${settings?.restaurantName || 'our restaurant'} regarding your unpaid bill of ${fmtPrice(order.total)} for Order #${order.id}.\n\nPlease arrange a settlement at your earliest convenience. Thank you!`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn"
+                        style={{
+                          padding: '0.4rem 0.8rem',
+                          fontSize: '0.85rem',
+                          backgroundColor: '#25D366',
+                          color: 'white',
+                          border: 'none',
+                          width: '100%'
+                        }}
+                      >
+                        💬 WhatsApp
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {stats?.unpaidOrders?.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    style={{ textAlign: 'center', padding: '2rem', color: 'var(--foreground-muted)' }}
+                  >
+                    No unpaid bills! 🎉
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <h2
@@ -269,84 +271,86 @@ export default function DashboardPage() {
         Recent Completed Orders
       </h2>
       <div className="card print-area-hide" style={{ padding: '0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr
-              style={{
-                borderBottom: '1px solid var(--glass-border)',
-                background: 'rgba(255,255,255,0.02)',
-              }}
-            >
-              <th
+        <div className="table-responsive">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr
                 style={{
-                  textAlign: 'left',
-                  padding: '1.25rem 1.5rem',
-                  fontWeight: 600,
-                  color: 'var(--foreground-muted)',
+                  borderBottom: '1px solid var(--glass-border)',
+                  background: 'rgba(255,255,255,0.02)',
                 }}
               >
-                Order ID
-              </th>
-              <th
-                style={{
-                  textAlign: 'center',
-                  padding: '1.25rem 1.5rem',
-                  fontWeight: 600,
-                  color: 'var(--foreground-muted)',
-                }}
-              >
-                Method
-              </th>
-              <th
-                style={{
-                  textAlign: 'right',
-                  padding: '1.25rem 1.5rem',
-                  fontWeight: 600,
-                  color: 'var(--foreground-muted)',
-                }}
-              >
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {stats?.recentOrders
-              ?.filter((o: Order) => o.status === 'PAID')
-              .map((order: Order) => (
-                <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>#{order.id}</td>
-                  <td style={{ textAlign: 'center', padding: '1.25rem 1.5rem' }}>
-                    <span
-                      className="badge"
-                      style={{ background: 'var(--glass-bg)', color: 'var(--foreground)' }}
+                <th
+                  style={{
+                    textAlign: 'left',
+                    padding: '1.25rem 1.5rem',
+                    fontWeight: 600,
+                    color: 'var(--foreground-muted)',
+                  }}
+                >
+                  Order ID
+                </th>
+                <th
+                  style={{
+                    textAlign: 'center',
+                    padding: '1.25rem 1.5rem',
+                    fontWeight: 600,
+                    color: 'var(--foreground-muted)',
+                  }}
+                >
+                  Method
+                </th>
+                <th
+                  style={{
+                    textAlign: 'right',
+                    padding: '1.25rem 1.5rem',
+                    fontWeight: 600,
+                    color: 'var(--foreground-muted)',
+                  }}
+                >
+                  Total
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats?.recentOrders
+                ?.filter((o: Order) => o.status === 'PAID')
+                .map((order: Order) => (
+                  <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>#{order.id}</td>
+                    <td style={{ textAlign: 'center', padding: '1.25rem 1.5rem' }}>
+                      <span
+                        className="badge"
+                        style={{ background: 'var(--glass-bg)', color: 'var(--foreground)' }}
+                      >
+                        {order.paymentMethod || 'CASH'}
+                      </span>
+                    </td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        padding: '1.25rem 1.5rem',
+                        fontWeight: 700,
+                        color: 'var(--primary-light)',
+                      }}
                     >
-                      {order.paymentMethod || 'CASH'}
-                    </span>
-                  </td>
+                      {fmtPrice(order.total)}
+                    </td>
+                  </tr>
+                ))}
+              {stats?.recentOrders?.filter((o: Order) => o.status === 'PAID').length === 0 && (
+                <tr>
                   <td
-                    style={{
-                      textAlign: 'right',
-                      padding: '1.25rem 1.5rem',
-                      fontWeight: 700,
-                      color: 'var(--primary-light)',
-                    }}
+                    colSpan={3}
+                    style={{ textAlign: 'center', padding: '2rem', color: 'var(--foreground-muted)' }}
                   >
-                    {fmtPrice(order.total)}
+                    No completed orders yet today.
                   </td>
                 </tr>
-              ))}
-            {stats?.recentOrders?.filter((o: Order) => o.status === 'PAID').length === 0 && (
-              <tr>
-                <td
-                  colSpan={3}
-                  style={{ textAlign: 'center', padding: '2rem', color: 'var(--foreground-muted)' }}
-                >
-                  No completed orders yet today.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

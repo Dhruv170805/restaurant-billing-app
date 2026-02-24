@@ -128,12 +128,12 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const taxAmount = order.total - subtotal
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-6" style={{ gap: '1rem' }}>
-        <button onClick={() => router.back()} className="btn btn-secondary">
+    <div className="max-width-lg mx-auto p-4">
+      <div className="flex flex-wrap justify-between items-center mb-6 order-actions" style={{ gap: '1rem' }}>
+        <button onClick={() => router.back()} className="btn btn-secondary order-actions-btn">
           ← Back
         </button>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap justify-center gap-3 order-actions-group">
           {order.status === 'PENDING' && (
             <button
               onClick={() => router.push(`/pos?table=${order.tableNumber}&orderId=${order.id}`)}
@@ -245,84 +245,86 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         </div>
 
         {/* Items Table */}
-        <table style={{ width: '100%', marginBottom: '1.5rem', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--glass-border)' }}>
-              <th
-                style={{
-                  textAlign: 'left',
-                  padding: '0.7rem 0',
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  color: 'var(--foreground-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Item
-              </th>
-              <th
-                style={{
-                  textAlign: 'center',
-                  padding: '0.7rem 0',
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  color: 'var(--foreground-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Qty
-              </th>
-              <th
-                style={{
-                  textAlign: 'right',
-                  padding: '0.7rem 0',
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  color: 'var(--foreground-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Price
-              </th>
-              <th
-                style={{
-                  textAlign: 'right',
-                  padding: '0.7rem 0',
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  color: 'var(--foreground-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.items.map((item) => (
-              <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <td style={{ padding: '0.75rem 0', fontWeight: 500 }}>{item.menuItem.name}</td>
-                <td style={{ textAlign: 'center', padding: '0.75rem 0' }}>{item.quantity}</td>
-                <td
+        <div className="table-responsive">
+          <table style={{ width: '100%', marginBottom: '1.5rem', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--glass-border)' }}>
+                <th
                   style={{
-                    textAlign: 'right',
-                    padding: '0.75rem 0',
+                    textAlign: 'left',
+                    padding: '0.7rem 0',
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
                     color: 'var(--foreground-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
                   }}
                 >
-                  {fmtPrice(item.priceAtOrder)}
-                </td>
-                <td style={{ textAlign: 'right', padding: '0.75rem 0', fontWeight: 600 }}>
-                  {fmtPrice(item.priceAtOrder * item.quantity)}
-                </td>
+                  Item
+                </th>
+                <th
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.7rem 0',
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    color: 'var(--foreground-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Qty
+                </th>
+                <th
+                  style={{
+                    textAlign: 'right',
+                    padding: '0.7rem 0',
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    color: 'var(--foreground-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Price
+                </th>
+                <th
+                  style={{
+                    textAlign: 'right',
+                    padding: '0.7rem 0',
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    color: 'var(--foreground-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Total
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {order.items.map((item) => (
+                <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <td style={{ padding: '0.75rem 0', fontWeight: 500 }}>{item.menuItem.name}</td>
+                  <td style={{ textAlign: 'center', padding: '0.75rem 0' }}>{item.quantity}</td>
+                  <td
+                    style={{
+                      textAlign: 'right',
+                      padding: '0.75rem 0',
+                      color: 'var(--foreground-muted)',
+                    }}
+                  >
+                    {fmtPrice(item.priceAtOrder)}
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '0.75rem 0', fontWeight: 600 }}>
+                    {fmtPrice(item.priceAtOrder * item.quantity)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Totals */}
         <div style={{ borderTop: '2px solid var(--glass-border)', paddingTop: '1rem' }}>
@@ -404,7 +406,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         >
           <h3 style={{ marginBottom: '1.5rem', color: 'var(--foreground)' }}>Complete Order</h3>
 
-          <div className="flex gap-4 justify-center" style={{ marginBottom: '2rem' }}>
+          <div className="flex gap-4 justify-center payment-methods-mobile" style={{ marginBottom: '2rem' }}>
             <button
               className={`btn ${selectedPayment === 'CASH' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setSelectedPayment('CASH')}

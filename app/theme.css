@@ -163,6 +163,7 @@ body::after {
 }
 
 @keyframes floatOrb {
+
   0%,
   100% {
     transform: translate(0, 0) scale(1);
@@ -692,13 +693,11 @@ select.form-input {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgba(243, 124, 34, 0) 5%,
-    rgba(243, 124, 34, 0.25) 40%,
-    rgba(230, 28, 36, 0.15) 60%,
-    rgba(230, 28, 36, 0) 95%
-  );
+  background: linear-gradient(90deg,
+      rgba(243, 124, 34, 0) 5%,
+      rgba(243, 124, 34, 0.25) 40%,
+      rgba(230, 28, 36, 0.15) 60%,
+      rgba(230, 28, 36, 0) 95%);
 }
 
 .logo a,
@@ -1175,6 +1174,61 @@ select.form-input {
   .nav-link {
     font-size: 0.8rem;
     padding: 0.35rem 0.65rem;
+  }
+
+  /* POS Layout */
+  .pos-layout {
+    flex-direction: column;
+    height: auto !important;
+  }
+
+  .pos-menu {
+    height: 55vh;
+  }
+
+  .pos-cart {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Tables layout */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Order details page */
+  .order-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .order-actions-btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .order-actions-group {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .order-actions-group>a,
+  .order-actions-group>button {
+    flex: 1 1 calc(50% - 0.5rem);
+    text-align: center;
+    justify-content: center;
+  }
+
+  .payment-methods-mobile {
+    flex-direction: column;
+    gap: 1rem !important;
+  }
+
+  .payment-methods-mobile>button {
+    width: 100%;
   }
 }
 

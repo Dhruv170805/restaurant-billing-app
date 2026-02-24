@@ -161,9 +161,9 @@ function POSContent() {
   }
 
   return (
-    <div className="flex gap-6" style={{ height: 'calc(100vh - 120px)' }}>
+    <div className="flex gap-6 pos-layout" style={{ height: 'calc(100vh - 120px)' }}>
       {/* Left Side - Menu */}
-      <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-4 overflow-hidden pos-menu">
         {/* Search + Categories Row */}
         <div className="flex gap-3 items-center shrink-0">
           {/* Search */}
@@ -344,7 +344,7 @@ function POSContent() {
       </div>
 
       {/* Right Side - Cart */}
-      <div className="card flex flex-col" style={{ width: '380px', height: '100%' }}>
+      <div className="card flex flex-col pos-cart" style={{ width: '380px', height: '100%' }}>
         <div
           style={{
             borderBottom: '1px solid var(--glass-border)',
