@@ -1,216 +1,196 @@
 import { ensureInitialized, getNextSequence } from './mongo'
-import { Order, OrderItem, PaginatedOrders } from '@/types'
+import { PaginatedOrders } from '@/types'
+import { Order, OrderItem } from '@/lib/db'
 import { DbOrder, DbMenuItem } from './schema'
 
 export async function getOrders(): Promise<Order[]> {
-    return (await getOrdersPaginated(1, 1000)).orders
+  return (await getOrdersPaginated(1, 1000)).orders
 }
 
 export async function getOrdersPaginated(
-    page: number = 1,
-    limit: number = 20
+  page: number = 1,
+  limit: number = 20
 ): Promise<PaginatedOrders> {
-    const db = await ensureInitialized()
-    const offset = (page - 1) * limit
+  const db = await ensureInitialized()
+  const offset = (page - 1) * limit
 
-    const ordersCollection = db.collection<DbOrder>('orders')
-    const total = await ordersCollection.countDocuments()
+  const ordersCollection = db.collection<DbOrder>('orders')
+  const total = await ordersCollection.countDocuments()
 
-    const docs = await ordersCollection.find()
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .toArray()
+  const docs = await ordersCollection
+    .find()
+    .sort({ createdAt: -1 })
+    .skip(offset)
+    .limit(limit)
+    .toArray()
 
-    const orders = docs.map(mapMongoOrderToTypes)
+  const orders = docs.map((doc) => ({ ...doc, id: doc._id }) as unknown as Order)
 
-    return {
-        orders,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-    }
+  return {
+    orders,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  }
 }
 
 export async function getOrdersByDateRange(from: string, to: string): Promise<Order[]> {
-    const db = await ensureInitialized()
-    const docs = await db.collection<DbOrder>('orders').find({
-        createdAt: { $gte: from, $lte: to }
-    }).sort({ createdAt: -1 }).toArray()
+  const db = await ensureInitialized()
+  const docs = await db
+    .collection<DbOrder>('orders')
+    .find({
+      createdAt: { $gte: from, $lte: to },
+    })
+    .sort({ createdAt: -1 })
+    .toArray()
 
-    return docs.map(mapMongoOrderToTypes)
-}
-
-export async function getOrdersByStatus(status: 'PENDING' | 'PAID' | 'CANCELLED'): Promise<Order[]> {
-    const db = await ensureInitialized()
-    const docs = await db.collection<DbOrder>('orders').find({ status })
-        .sort({ createdAt: -1 })
-        .toArray()
-
-    return docs.map(mapMongoOrderToTypes)
+  return docs.map((doc) => ({ ...doc, id: doc._id }) as unknown as Order)
 }
 
 export async function getOrder(id: number): Promise<Order | undefined> {
-    const db = await ensureInitialized()
-    const doc = await db.collection<DbOrder>('orders').findOne({ _id: id })
-    if (!doc) return undefined
-    return mapMongoOrderToTypes(doc)
+  const db = await ensureInitialized()
+  const doc = await db.collection<DbOrder>('orders').findOne({ _id: id })
+  if (!doc) return undefined
+  return { ...doc, id: doc._id } as unknown as Order
 }
 
 export async function createOrder(
-    items: OrderItem[],
-    _clientTotal: number,
-    tableNumber: number
+  items: OrderItem[],
+  _clientTotal: number,
+  tableNumber: number,
+  customerName?: string,
+  customerPhone?: string
 ): Promise<Order> {
-    const db = await ensureInitialized()
+  const db = await ensureInitialized()
 
-    let serverTotal = 0
-    const processedItems = []
+  let serverTotal = 0
+  const processedItems = []
 
-    for (const item of items) {
-        const menuItem = await db.collection<DbMenuItem>('menu_items').findOne({ _id: item.menuItemId })
-        if (menuItem) {
-            item.price = Math.round(menuItem.price * 100) / 100
-        }
-        serverTotal += Math.round(item.price * item.quantity * 100) / 100
-
-        processedItems.push({
-            menuItemId: item.menuItemId,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price
-        })
+  for (const item of items) {
+    const menuItem = await db.collection<DbMenuItem>('menu_items').findOne({ _id: item.menuItemId })
+    if (menuItem) {
+      item.price = Math.round(menuItem.price * 100) / 100
+      item.name = menuItem.name
     }
+    serverTotal += Math.round(item.price * item.quantity * 100) / 100
 
-    const total = Math.round(serverTotal * 100) / 100
-    const now = new Date()
-    const nowFormatted = now.toISOString().slice(0, 19).replace('T', ' ')
-
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const startOfDayFormatted = startOfDay.toISOString().slice(0, 19).replace('T', ' ')
-
-    const c = await db.collection<DbOrder>('orders').countDocuments({
-        createdAt: { $gte: startOfDayFormatted }
+    processedItems.push({
+      menuItemId: item.menuItemId,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
     })
-    const tokenNumber = c + 1
+  }
 
-    const orderId = await getNextSequence('orderId')
+  const total = Math.round(serverTotal * 100) / 100
+  const now = new Date()
+  const nowFormatted = now.toISOString().slice(0, 19).replace('T', ' ')
 
-    const newOrder: DbOrder = {
-        _id: orderId,
-        tokenNumber,
-        tableNumber,
-        status: 'PENDING',
-        paymentMethod: null,
-        subtotal: total,
-        tax: 0,
-        total,
-        createdAt: nowFormatted,
-        updatedAt: nowFormatted,
-        items: processedItems,
-        itemCount: processedItems.reduce((acc, item) => acc + item.quantity, 0)
-    }
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfDayFormatted = startOfDay.toISOString().slice(0, 19).replace('T', ' ')
 
-    await db.collection<DbOrder>('orders').insertOne(newOrder)
-    return (await getOrder(orderId))!
+  const c = await db.collection<DbOrder>('orders').countDocuments({
+    createdAt: { $gte: startOfDayFormatted },
+  })
+  const tokenNumber = c + 1
+
+  const orderId = await getNextSequence('orderId')
+
+  const newOrder: DbOrder = {
+    _id: orderId,
+    tokenNumber,
+    tableNumber,
+    status: 'PENDING',
+    paymentMethod: null,
+    ...(customerName ? { customerName } : {}),
+    ...(customerPhone ? { customerPhone } : {}),
+    subtotal: total,
+    tax: 0,
+    total,
+    createdAt: nowFormatted,
+    updatedAt: nowFormatted,
+    items: processedItems,
+    itemCount: processedItems.reduce((acc, item) => acc + item.quantity, 0),
+  }
+
+  await db.collection<DbOrder>('orders').insertOne(newOrder)
+  return (await getOrder(orderId))!
 }
 
 export async function addItemsToOrder(orderId: number, items: OrderItem[]): Promise<Order> {
-    const db = await ensureInitialized()
-    const order = await db.collection<DbOrder>('orders').findOne({ _id: orderId })
-    if (!order) throw new Error('Order not found')
-    if (order.status !== 'PENDING') throw new Error('Can only add items to PENDING orders')
+  const db = await ensureInitialized()
+  const order = await db.collection<DbOrder>('orders').findOne({ _id: orderId })
+  if (!order) throw new Error('Order not found')
+  if (order.status !== 'PENDING') throw new Error('Can only add items to PENDING orders')
 
-    let addedTotal = 0
-    const newItems = [...(order.items || [])]
+  let addedTotal = 0
+  const newItems = [...(order.items || [])]
 
-    for (const item of items) {
-        const menuItem = await db.collection<DbMenuItem>('menu_items').findOne({ _id: item.menuItemId })
-        if (menuItem) {
-            item.price = Math.round(menuItem.price * 100) / 100
-        }
-        addedTotal += Math.round(item.price * item.quantity * 100) / 100
-
-        const existingItemIndex = newItems.findIndex((i) => i.menuItemId === item.menuItemId)
-        if (existingItemIndex > -1) {
-            newItems[existingItemIndex].quantity += item.quantity
-            newItems[existingItemIndex].price = item.price // Update price if changed
-        } else {
-            newItems.push({
-                menuItemId: item.menuItemId,
-                name: item.name,
-                quantity: item.quantity,
-                price: item.price
-            })
-        }
+  for (const item of items) {
+    const menuItem = await db.collection<DbMenuItem>('menu_items').findOne({ _id: item.menuItemId })
+    if (menuItem) {
+      item.price = Math.round(menuItem.price * 100) / 100
+      item.name = menuItem.name
     }
+    addedTotal += Math.round(item.price * item.quantity * 100) / 100
 
-    const newTotal = Math.round((order.total + addedTotal) * 100) / 100
-    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+    const existingItemIndex = newItems.findIndex((i) => i.menuItemId === item.menuItemId)
+    if (existingItemIndex > -1) {
+      newItems[existingItemIndex].quantity += item.quantity
+      newItems[existingItemIndex].price = item.price // Update price if changed
+      newItems[existingItemIndex].name = item.name // Update name to enforce latest
+    } else {
+      newItems.push({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })
+    }
+  }
 
-    await db.collection<DbOrder>('orders').updateOne(
-        { _id: orderId },
-        {
-            $set: {
-                items: newItems,
-                total: newTotal,
-                updatedAt: now
-            }
-        }
-    )
+  const newTotal = Math.round((order.total + addedTotal) * 100) / 100
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
 
-    return (await getOrder(orderId))!
+  await db.collection<DbOrder>('orders').updateOne(
+    { _id: orderId },
+    {
+      $set: {
+        items: newItems,
+        total: newTotal,
+        updatedAt: now,
+      },
+    }
+  )
+
+  return (await getOrder(orderId))!
 }
 
 export async function updateOrderStatus(
-    id: number,
-    status: 'PENDING' | 'PAID' | 'CANCELLED',
-    paymentMethod?: 'CASH' | 'ONLINE'
+  id: number,
+  status: 'PENDING' | 'PAID' | 'UNPAID' | 'CANCELLED',
+  paymentMethod?: 'CASH' | 'ONLINE' | 'UNPAID',
+  updates?: { customerName?: string; customerPhone?: string }
 ): Promise<Order | null> {
-    const db = await ensureInitialized()
-    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+  const db = await ensureInitialized()
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
 
-    const updateDoc: Partial<DbOrder> = { status, updatedAt: now }
-    if (paymentMethod) {
-        updateDoc.paymentMethod = paymentMethod
-    }
+  const updateDoc: Partial<DbOrder> = { status, updatedAt: now }
+  if (paymentMethod) {
+    updateDoc.paymentMethod = paymentMethod
+  }
+  if (updates?.customerName) updateDoc.customerName = updates.customerName
+  if (updates?.customerPhone) updateDoc.customerPhone = updates.customerPhone
 
-    const result = await db.collection<DbOrder>('orders').updateOne(
-        { _id: id },
-        { $set: updateDoc }
-    )
+  const result = await db.collection<DbOrder>('orders').updateOne({ _id: id }, { $set: updateDoc })
 
-    if (result.matchedCount === 0) return null
-    return (await getOrder(id)) || null
+  if (result.matchedCount === 0) return null
+  return (await getOrder(id)) || null
 }
 
 export async function deleteOrder(id: number): Promise<boolean> {
-    const db = await ensureInitialized()
-    const result = await db.collection<DbOrder>('orders').deleteOne({ _id: id })
-    return result.deletedCount > 0
-}
-
-function mapMongoOrderToTypes(doc: DbOrder): Order {
-    return {
-        id: doc._id,
-        tokenNumber: doc.tokenNumber,
-        tableNumber: doc.tableNumber,
-        status: doc.status,
-        paymentMethod: doc.paymentMethod,
-        total: doc.total,
-        subtotal: doc.total,
-        tax: 0,
-        createdAt: doc.createdAt,
-        updatedAt: doc.updatedAt,
-        items: (doc.items || []).map((i) => ({
-            id: 0,
-            orderId: doc._id,
-            menuItemId: i.menuItemId,
-            name: i.name,
-            quantity: i.quantity,
-            price: i.price,
-            menuItem: { name: i.name, category: { name: '' } }
-        }))
-    }
+  const db = await ensureInitialized()
+  const result = await db.collection<DbOrder>('orders').deleteOne({ _id: id })
+  return result.deletedCount > 0
 }

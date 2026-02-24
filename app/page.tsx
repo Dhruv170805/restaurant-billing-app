@@ -6,7 +6,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { formatPriceWithSettings } from '@/lib/pricing'
 import { useTables, useSettings } from '@/hooks/useData'
 
-import type { TableInfo } from '@/types'
+import type { TableInfo } from '@/lib/db'
 
 export default function Home() {
   const router = useRouter()

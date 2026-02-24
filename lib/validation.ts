@@ -37,23 +37,23 @@ export function validateStringLength(
   return clean
 }
 
+/** Validate optional string length */
+export function validateOptionalStringLength(
+  val: unknown,
+  fieldName: string,
+  min: number = 0,
+  max: number = 255
+): string | undefined {
+  if (val === undefined || val === null || val === '') return undefined
+  return validateStringLength(val, fieldName, min, max)
+}
+
 // ── Number helpers ────────────────────────────────────
 
 /** Validate a value is a positive finite number */
 export function validatePositiveNumber(val: unknown, fieldName: string): number {
   if (typeof val !== 'number' || !Number.isFinite(val) || val <= 0) {
     throw new ValidationError(`${fieldName} must be a positive number`, {
-      field: fieldName,
-      received: val,
-    })
-  }
-  return val
-}
-
-/** Validate a value is a non-negative finite number */
-export function validateNonNegativeNumber(val: unknown, fieldName: string): number {
-  if (typeof val !== 'number' || !Number.isFinite(val) || val < 0) {
-    throw new ValidationError(`${fieldName} must be a non-negative number`, {
       field: fieldName,
       received: val,
     })
@@ -104,50 +104,6 @@ export function validateEnum<T extends string>(
     })
   }
   return val as T
-}
-
-// ── Order-specific validation ─────────────────────────
-
-export interface RawCartItem {
-  id: unknown
-  name: unknown
-  price: unknown
-  quantity: unknown
-}
-
-export interface ValidatedCartItem {
-  id: number
-  name: string
-  price: number
-  quantity: number
-}
-
-const MAX_ITEMS_PER_ORDER = 50
-const MAX_QUANTITY_PER_ITEM = 99
-
-/** Validate and sanitize an order items array */
-export function validateOrderItems(items: unknown): ValidatedCartItem[] {
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new ValidationError('Order must have at least one item')
-  }
-  if (items.length > MAX_ITEMS_PER_ORDER) {
-    throw new ValidationError(`Order cannot have more than ${MAX_ITEMS_PER_ORDER} distinct items`)
-  }
-
-  return items.map((item: RawCartItem, index: number) => {
-    const prefix = `Item #${index + 1}`
-    return {
-      id: validatePositiveInteger(item.id, `${prefix} id`),
-      name: validateStringLength(item.name, `${prefix} name`, 1, 100),
-      price: validatePositiveNumber(item.price, `${prefix} price`),
-      quantity: validateRange(
-        item.quantity,
-        `${prefix} quantity`,
-        1,
-        MAX_QUANTITY_PER_ITEM
-      ) as number,
-    }
-  })
 }
 
 // ── Settings validation ───────────────────────────────
@@ -265,7 +221,8 @@ export function validateSettingsUpdate(body: Record<string, unknown>): Record<st
 // ── Order status transitions ──────────────────────────
 
 const VALID_TRANSITIONS: Record<string, readonly string[]> = {
-  PENDING: ['PAID', 'CANCELLED'],
+  PENDING: ['PAID', 'UNPAID', 'CANCELLED'],
+  UNPAID: ['PAID', 'CANCELLED'],
   PAID: [], // terminal state
   CANCELLED: [], // terminal state
 }

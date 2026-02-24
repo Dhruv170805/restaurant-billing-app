@@ -73,10 +73,13 @@ I have provided a `Dockerfile` and a `docker-compose.yml` file to make deploymen
 
 1. Make sure you have Docker installed on your host server.
 2. In the terminal, run:
+
 ```bash
 docker-compose up -d --build
 ```
+
 3. Your app will now be running perpetually in the background at `http://YOUR_SERVER_IP:3000`!
 
 ## License
+
 MIT

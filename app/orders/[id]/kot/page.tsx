@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
-import type { Order } from '@/types'
+import type { Order } from '@/lib/db'
 import type { DbSettings } from '@/lib/db/schema'
 
 export default function KitchenTokenPage({ params }: { params: Promise<{ id: string }> }) {
@@ -192,31 +192,44 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody>
-              {order.items.map((item) => (
-                <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td
-                    style={{
-                      padding: '0.85rem 0',
-                      fontWeight: 600,
-                      fontSize: '1.05rem',
-                      letterSpacing: '0.01em',
-                    }}
+              {order.items.map((item: Record<string, unknown>, index: number) => {
+                const menuItemIdStr = String(item.menuItemId || item.id || `fallback-item-${index}`)
+                const nameStr = String(
+                  item.name ||
+                  ((item.menuItem as Record<string, unknown>)?.name) ||
+                  'Unknown Item'
+                )
+                const qtyStr = String(item.quantity || 1)
+
+                return (
+                  <tr
+                    key={menuItemIdStr}
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                   >
-                    {item.name}
-                  </td>
-                  <td
-                    style={{
-                      textAlign: 'center',
-                      padding: '0.85rem 0',
-                      fontWeight: 800,
-                      fontSize: '1.15rem',
-                      color: 'var(--primary-light)',
-                    }}
-                  >
-                    ×{item.quantity}
-                  </td>
-                </tr>
-              ))}
+                    <td
+                      style={{
+                        padding: '0.85rem 0',
+                        fontWeight: 600,
+                        fontSize: '1.05rem',
+                        letterSpacing: '0.01em',
+                      }}
+                    >
+                      {nameStr}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.85rem 0',
+                        fontWeight: 800,
+                        fontSize: '1.15rem',
+                        color: 'var(--primary-light)',
+                      }}
+                    >
+                      ×{qtyStr}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

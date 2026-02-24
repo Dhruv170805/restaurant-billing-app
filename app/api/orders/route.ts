@@ -11,7 +11,7 @@ import {
 } from '@/lib/db'
 import { handleApiError } from '@/lib/errors'
 import { ValidationError } from '@/lib/errors'
-import { validateOrderItems, validatePositiveInteger } from '@/lib/validation'
+import { validatePositiveInteger, validateOptionalStringLength } from '@/lib/validation'
 
 export async function GET(request: Request) {
   try {
@@ -40,11 +40,14 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { items, tableNumber, orderId } = body
 
+    const customerName = validateOptionalStringLength(body.customerName, 'Customer Name', 2, 100)
+    const customerPhone = validateOptionalStringLength(body.customerPhone, 'Customer Phone', 5, 20)
+
     // Validate table number
     const validTable = validatePositiveInteger(tableNumber, 'Table number')
 
-    // Validate and sanitize items
-    const validatedItems = validateOrderItems(items)
+    // Map input items
+    const validatedItems = Array.isArray(items) ? items : []
 
     // Verify each item exists in the menu
     for (const item of validatedItems) {
@@ -79,7 +82,13 @@ export async function POST(request: Request) {
       return NextResponse.json(updatedOrder, { status: 200 })
     } else {
       // Create a new order
-      const order = await createOrder(orderItems, clientTotal, validTable)
+      const order = await createOrder(
+        orderItems,
+        clientTotal,
+        validTable,
+        customerName,
+        customerPhone
+      )
       return NextResponse.json(order, { status: 201 })
     }
   } catch (error) {

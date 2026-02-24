@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@/lib/db'
-import { handleApiError, ValidationError, ConflictError } from '@/lib/errors'
+import { handleApiError, ValidationError } from '@/lib/errors'
 import { validateStringLength, validatePositiveInteger } from '@/lib/validation'
 
 export async function GET() {
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     // Check for duplicates
     const existing = (await getCategories()).find((c) => c.name === name)
     if (existing) {
-      throw new ConflictError(`Category "${name}" already exists`, { existingId: existing.id })
+      throw new ValidationError(`Category "${name}" already exists`, { existingId: existing.id })
     }
 
     const category = await addCategory(name)
@@ -43,7 +43,7 @@ export async function PUT(request: Request) {
     // Check for duplicates (excluding current category)
     const existing = (await getCategories()).find((c) => c.name === name && c.id !== id)
     if (existing) {
-      throw new ConflictError(`Category "${name}" already exists`, { existingId: existing.id })
+      throw new ValidationError(`Category "${name}" already exists`, { existingId: existing.id })
     }
 
     const updated = await updateCategory(id, name)
@@ -73,7 +73,7 @@ export async function DELETE(request: Request) {
 
     const deleted = await deleteCategory(id)
     if (!deleted) {
-      throw new ConflictError(
+      throw new ValidationError(
         'Cannot delete: category has menu items or does not exist. Remove all items from this category first.',
         { categoryId: id }
       )

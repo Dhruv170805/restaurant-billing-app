@@ -21,28 +21,65 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className={inter.className}>
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
           if (!sessionStorage.getItem('force_reload_theme_v3')) {
             sessionStorage.setItem('force_reload_theme_v3', 'true');
             window.location.reload(true);
           }
-        `}} />
+        `,
+          }}
+        />
         <nav className="navbar">
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-            <svg width="72" height="72" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+          <Link
+            href="/"
+            style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
+          >
+            <svg
+              width="72"
+              height="72"
+              viewBox="0 0 120 120"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ flexShrink: 0 }}
+            >
               {/* Shree Logo part */}
-              <text x="10" y="68" fontFamily="Arial, sans-serif" fontSize="52" fontWeight="900" fill="#f37c22" style={{ filter: 'drop-shadow(1px 1px 0px rgba(0,0,0,0.1))' }}>
+              <text
+                x="10"
+                y="68"
+                fontFamily="Arial, sans-serif"
+                fontSize="52"
+                fontWeight="900"
+                fill="#f37c22"
+                style={{ filter: 'drop-shadow(1px 1px 0px rgba(0,0,0,0.1))' }}
+              >
                 श्री
               </text>
 
               {/* ji Logo part */}
-              <text x="66" y="72" fontFamily="Arial, sans-serif" fontSize="58" fontWeight="900" fill="#e61c24" style={{ filter: 'drop-shadow(1px 1px 0px rgba(0,0,0,0.1))' }}>
+              <text
+                x="66"
+                y="72"
+                fontFamily="Arial, sans-serif"
+                fontSize="58"
+                fontWeight="900"
+                fill="#e61c24"
+                style={{ filter: 'drop-shadow(1px 1px 0px rgba(0,0,0,0.1))' }}
+              >
                 ji
               </text>
 
               {/* Subtext */}
-              <text x="60" y="102" fontFamily="Georgia, serif" fontSize="18" fontWeight="bold" fontStyle="italic" fill="#aa0000" textAnchor="middle">
+              <text
+                x="60"
+                y="102"
+                fontFamily="Georgia, serif"
+                fontSize="18"
+                fontWeight="bold"
+                fontStyle="italic"
+                fill="#aa0000"
+                textAnchor="middle"
+              >
                 Restaurant
               </text>
             </svg>
@@ -81,11 +118,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             transform: 'scale(1.5)',
           }}
         >
-          <svg width="80vmin" height="80vmin" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-            <text x="10" y="68" fontFamily="Arial, sans-serif" fontSize="52" fontWeight="900" fill="#f37c22">
+          <svg
+            width="80vmin"
+            height="80vmin"
+            viewBox="0 0 120 120"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <text
+              x="10"
+              y="68"
+              fontFamily="Arial, sans-serif"
+              fontSize="52"
+              fontWeight="900"
+              fill="#f37c22"
+            >
               श्री
             </text>
-            <text x="66" y="72" fontFamily="Arial, sans-serif" fontSize="58" fontWeight="900" fill="#e61c24">
+            <text
+              x="66"
+              y="72"
+              fontFamily="Arial, sans-serif"
+              fontSize="58"
+              fontWeight="900"
+              fill="#e61c24"
+            >
               ji
             </text>
           </svg>

@@ -30,18 +30,6 @@ export class NotFoundError extends AppError {
   }
 }
 
-export class ConflictError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 409, 'CONFLICT', details)
-  }
-}
-
-export class InvalidStateError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 422, 'INVALID_STATE', details)
-  }
-}
-
 // ── API Error Response Helper ─────────────────────────
 // Maps AppError subclasses to consistent JSON responses.
 

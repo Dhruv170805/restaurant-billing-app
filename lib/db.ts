@@ -8,14 +8,13 @@ export * from './db/orders'
 export * from './db/settings'
 export * from './db/tables'
 
-
 // Export types for external use
 export type {
-  MenuItem,
-  Category,
-  Order,
-  OrderItem,
-  AppSettings,
-  TableInfo,
-  DashboardStats
-} from '@/types'
+  DbMenuItem as MenuItem,
+  DbCategory as Category,
+  DbOrder as Order,
+  DbOrderItem as OrderItem,
+  DbSettings as AppSettings,
+  DbTableInfo as TableInfo,
+  DbDashboardStats as DashboardStats,
+} from './db/schema'

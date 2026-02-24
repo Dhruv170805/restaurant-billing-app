@@ -19,8 +19,10 @@ interface Order {
   createdAt: string
   total: number
   status: string
-  paymentMethod?: 'CASH' | 'ONLINE'
+  paymentMethod?: 'CASH' | 'ONLINE' | 'UNPAID'
   tableNumber?: number
+  customerName?: string
+  customerPhone?: string
   items: OrderItem[]
 }
 
@@ -39,7 +41,9 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<Settings | null>(null)
-  const [selectedPayment, setSelectedPayment] = useState<'CASH' | 'ONLINE' | null>(null)
+  const [selectedPayment, setSelectedPayment] = useState<'CASH' | 'ONLINE' | 'UNPAID' | null>(null)
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
 
   const resolvedParams = use(params)
 
@@ -73,16 +77,26 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
 
   const handleStatusUpdate = async (newStatus: string, paymentMethod?: string) => {
     try {
+      const payload: Record<string, unknown> = { status: newStatus, paymentMethod }
+      if (paymentMethod === 'UNPAID') {
+        if (!customerName.trim()) {
+          toast.error('Customer Name is required for unpaid bills')
+          return
+        }
+        payload.customerName = customerName
+        payload.customerPhone = customerPhone
+      }
+
       const res = await fetch(`/api/orders/${resolvedParams.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, paymentMethod }),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
         const updated = await res.json()
         setOrder(updated)
         toast.success(`Order marked as ${newStatus}`)
-        if (newStatus === 'PAID') {
+        if (newStatus === 'PAID' || newStatus === 'UNPAID') {
           router.push('/')
         }
       } else {
@@ -417,14 +431,98 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
               <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>💳</span>
               Online
             </button>
+            <button
+              className={`btn ${selectedPayment === 'UNPAID' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setSelectedPayment('UNPAID')}
+              style={{
+                flex: 1,
+                padding: '1.5rem 1rem',
+                fontSize: '1.1rem',
+                borderRadius: 'var(--radius-lg)',
+                background: selectedPayment === 'UNPAID' ? 'var(--warning-bg)' : undefined,
+                color: selectedPayment === 'UNPAID' ? 'var(--warning-text)' : undefined,
+                borderColor: selectedPayment === 'UNPAID' ? 'var(--warning)' : undefined,
+              }}
+            >
+              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>📓</span>
+              Unpaid (Baki)
+            </button>
           </div>
+
+          {selectedPayment === 'UNPAID' && (
+            <div
+              style={{
+                marginBottom: '2rem',
+                textAlign: 'left',
+                background: 'rgba(255,255,255,0.03)',
+                padding: '1.5rem',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--glass-border)',
+              }}
+            >
+              <h4 style={{ marginBottom: '1rem', color: 'var(--warning)' }}>
+                Customer Details Required
+              </h4>
+              <div style={{ marginBottom: '1rem' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: 'var(--foreground-muted)',
+                  }}
+                >
+                  Customer Name *
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="form-input"
+                  placeholder="Enter full name"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: 'var(--foreground-muted)',
+                  }}
+                >
+                  Customer Phone
+                </label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="form-input"
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+          )}
 
           <button
             className="checkout-btn"
             disabled={!selectedPayment}
-            onClick={() => handleStatusUpdate('PAID', selectedPayment || undefined)}
+            onClick={() =>
+              handleStatusUpdate(
+                selectedPayment === 'UNPAID' ? 'UNPAID' : 'PAID',
+                selectedPayment || undefined
+              )
+            }
+            style={{
+              background: selectedPayment === 'UNPAID' ? 'var(--warning)' : undefined,
+              boxShadow:
+                selectedPayment === 'UNPAID' ? '0 8px 30px rgba(245, 158, 11, 0.4)' : undefined,
+            }}
           >
-            ✓ Settle Bill & Complete ({fmtPrice(order.total)})
+            ✓ {selectedPayment === 'UNPAID' ? 'Save as Unpaid' : 'Settle Bill & Complete'} (
+            {fmtPrice(order.total)})
           </button>
         </div>
       )}

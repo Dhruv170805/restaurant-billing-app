@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { formatPriceWithSettings } from '@/lib/pricing'
 import { useMenu, useCategories, useSettings } from '@/hooks/useData'
 
-import type { MenuItem } from '@/types'
+import type { MenuItem } from '@/lib/db'
 
 export default function MenuPage() {
   const { items, mutate: mutateMenu, isLoading: menuLoading } = useMenu()
@@ -24,9 +24,6 @@ export default function MenuPage() {
   const [formCategoryId, setFormCategoryId] = useState<number | 'NEW' | ''>('')
   const [newCategoryName, setNewCategoryName] = useState('')
   const [submitting, setSubmitting] = useState(false)
-
-
-
 
   const fmtPrice = (amount: number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount
@@ -153,7 +150,6 @@ export default function MenuPage() {
       toast.error('Failed to delete item')
     }
   }
-
 
   return (
     <div className="flex flex-col gap-6">
@@ -532,13 +528,15 @@ export default function MenuPage() {
               className="form-input"
               value={formCategoryId}
               onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'NEW') setFormCategoryId('NEW');
-                else setFormCategoryId(val ? parseInt(val) : '');
+                const val = e.target.value
+                if (val === 'NEW') setFormCategoryId('NEW')
+                else setFormCategoryId(val ? parseInt(val) : '')
               }}
             >
               <option value="">Select category</option>
-              <option value="NEW" style={{ fontWeight: 'bold', color: 'var(--primary)' }}>+ Create New Category</option>
+              <option value="NEW" style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
+                + Create New Category
+              </option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
@@ -549,7 +547,9 @@ export default function MenuPage() {
 
           {formCategoryId === 'NEW' && (
             <div className="form-group animate-fade-in">
-              <label className="form-label" style={{ color: 'var(--primary)' }}>New Category Name</label>
+              <label className="form-label" style={{ color: 'var(--primary)' }}>
+                New Category Name
+              </label>
               <input
                 type="text"
                 className="form-input"
