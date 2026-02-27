@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, use, useCallback } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 
 import type { Order } from '@/lib/db'
-import type { DbSettings } from '@/lib/db/schema'
+import type { DbSettings, DbOrderItem } from '@/lib/db/schema'
 
 export default function KitchenTokenPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -17,7 +17,7 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`/api/orders/${resolvedParams.id}`)
+        const res = await fetch(`/api/orders/${resolvedParams.id}`, { cache: 'no-store' })
         if (res.ok) {
           const data = await res.json()
           setOrder(data)
@@ -40,9 +40,14 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
     return () => window.removeEventListener('afterprint', handleAfterPrint)
   }, [resolvedParams.id, router])
 
-  const handlePrint = useCallback(() => {
+  const handlePrint = async () => {
+    try {
+      await fetch(`/api/orders/${resolvedParams.id}/kot`, { method: 'PUT' })
+    } catch (err) {
+      console.error('Failed to mark KOT as printed', err)
+    }
     window.print()
-  }, [])
+  }
 
   if (loading)
     return (
@@ -60,21 +65,53 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
     )
 
   const locale = settings?.currencyLocale || 'en-US'
+  const tz = settings?.timezone || 'Asia/Kolkata'
   const orderDate = new Date(order.createdAt)
   const timeStr = orderDate.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: tz,
     hour12: true,
   })
   const dateStr = orderDate.toLocaleDateString(locale, {
     day: '2-digit',
-    month: '2-digit',
+    month: 'short',
     year: 'numeric',
+    timeZone: tz,
   })
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-6" data-print-hidden>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          @page { margin: 0; }
+          body { 
+            background: white !important;
+            color: black !important;
+            padding: 0 !important;
+          }
+          .kot-card {
+            width: 300px !important;
+            max-width: 300px !important;
+            margin: 0 auto !important;
+            padding: 10px !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
+          }
+          .print-hidden {
+            display: none !important;
+          }
+          /* Override any glassmorphism / dark mode colors for thermal printer */
+          * {
+            color: black !important;
+            text-shadow: none !important;
+          }
+        }
+      `}} />
+
+      <div className="flex justify-between items-center mb-6 print-hidden">
         <button onClick={() => router.back()} className="btn btn-secondary">
           ← Back
         </button>
@@ -83,48 +120,46 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
         </button>
       </div>
 
-      <div className="kot-card print-area">
+      <div className="kot-card print-area" style={{ maxWidth: '300px', margin: '0 auto', background: 'var(--card-bg)' }}>
         {/* KOT Header */}
         <div
           style={{
             textAlign: 'center',
-            marginBottom: '1.5rem',
+            marginBottom: '1rem',
             paddingBottom: '1rem',
-            borderBottom: '2px dashed var(--glass-border)',
+            borderBottom: '1px dashed #000',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
-          <p
-            style={{
-              fontSize: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.15em',
-              color: 'var(--foreground-muted)',
-              marginBottom: '0.5rem',
-              fontWeight: 600,
-            }}
-          >
-            Kitchen Order Ticket
-          </p>
-          <p
-            style={{
-              fontSize: '3.5rem',
-              fontWeight: 900,
-              lineHeight: 1,
-              background: 'var(--primary-gradient)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            #{order.tokenNumber ?? order.id}
-          </p>
+          {/* Print-optimized text logo (Black & White for Thermal) */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            lineHeight: 1,
+            marginBottom: '0.5rem'
+          }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#000', letterSpacing: '-0.5px' }}>
+              {settings?.restaurantName || 'Restaurant'}
+            </span>
+          </div>
           <p
             style={{
               fontSize: '0.85rem',
-              color: 'var(--foreground-muted)',
-              marginTop: '0.5rem',
-              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              fontWeight: 700,
+              marginBottom: '0.5rem',
             }}
           >
+            Kitchen Ticket
+          </p>
+          <p style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1 }}>
+            #{order.tokenNumber ?? order.id}
+          </p>
+          <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: 600 }}>
             {settings?.restaurantName || 'Restaurant'}
           </p>
         </div>
@@ -158,19 +193,17 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Items List */}
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ marginBottom: '1.5rem', borderBottom: '1px dashed #000' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid var(--glass-border)' }}>
+              <tr style={{ borderBottom: '1px dashed #000' }}>
                 <th
                   style={{
                     textAlign: 'left',
                     padding: '0.6rem 0',
                     fontWeight: 700,
-                    fontSize: '0.75rem',
+                    fontSize: '0.85rem',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    color: 'var(--foreground-muted)',
                   }}
                 >
                   Item
@@ -180,11 +213,9 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
                     textAlign: 'center',
                     padding: '0.6rem 0',
                     fontWeight: 700,
-                    fontSize: '0.75rem',
+                    fontSize: '0.85rem',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    color: 'var(--foreground-muted)',
-                    width: '80px',
+                    width: '60px',
                   }}
                 >
                   Qty
@@ -192,44 +223,53 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody>
-              {order.items.map((item: Record<string, unknown>, index: number) => {
-                const menuItemIdStr = String(item.menuItemId || item.id || `fallback-item-${index}`)
-                const nameStr = String(
-                  item.name ||
-                  ((item.menuItem as Record<string, unknown>)?.name) ||
-                  'Unknown Item'
-                )
-                const qtyStr = String(item.quantity || 1)
+              {order.items
+                .map((item: DbOrderItem, index: number) => {
+                  const qty = Number(item.quantity) || 1
+                  const printedQty = Number(item.printedQuantity) || 0
+                  const unprintedQty = qty - printedQty
 
-                return (
-                  <tr
-                    key={menuItemIdStr}
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                  >
-                    <td
-                      style={{
-                        padding: '0.85rem 0',
-                        fontWeight: 600,
-                        fontSize: '1.05rem',
-                        letterSpacing: '0.01em',
-                      }}
-                    >
-                      {nameStr}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'center',
-                        padding: '0.85rem 0',
-                        fontWeight: 800,
-                        fontSize: '1.15rem',
-                        color: 'var(--primary-light)',
-                      }}
-                    >
-                      ×{qtyStr}
-                    </td>
-                  </tr>
-                )
-              })}
+                  return { ...item, unprintedQty, index }
+                })
+                .filter(item => item.unprintedQty > 0)
+                .map((item) => {
+                  const menuItemIdStr = String(item.menuItemId || `fallback-item-${item.index}`)
+                  const nameStr = item.name || 'Unknown Item'
+
+                  return (
+                    <tr key={menuItemIdStr}>
+                      <td
+                        style={{
+                          padding: '0.5rem 0',
+                          fontWeight: 600,
+                          fontSize: '0.95rem',
+                          borderBottom: '1px dotted #ccc',
+                        }}
+                      >
+                        {nameStr}
+                      </td>
+                      <td
+                        style={{
+                          textAlign: 'center',
+                          padding: '0.5rem 0',
+                          fontWeight: 800,
+                          fontSize: '1rem',
+                          borderBottom: '1px dotted #ccc',
+                        }}
+                      >
+                        ×{item.unprintedQty}
+                      </td>
+                    </tr>
+                  )
+                })}
+
+              {order.items.filter((item: DbOrderItem) => (item.quantity - (item.printedQuantity || 0)) > 0).length === 0 && (
+                <tr>
+                  <td colSpan={2} style={{ textAlign: 'center', padding: '1rem', fontWeight: 600, color: 'var(--foreground-muted)' }}>
+                    No new items to print.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -239,18 +279,16 @@ export default function KitchenTokenPage({ params }: { params: Promise<{ id: str
           style={{
             textAlign: 'center',
             paddingTop: '1rem',
-            borderTop: '2px dashed var(--glass-border)',
           }}
         >
-          <p
-            style={{
-              fontSize: '0.8rem',
-              color: 'var(--foreground-muted)',
-              fontWeight: 500,
-            }}
-          >
-            {order.items.reduce((sum, i) => sum + i.quantity, 0)} items total
+          <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+            {order.items.reduce((sum, i) => sum + (i.quantity - (i.printedQuantity || 0)), 0)} new items total
           </p>
+          {order.customerName && (
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '0.5rem' }}>
+              Customer: {order.customerName}
+            </p>
+          )}
         </div>
       </div>
     </div>

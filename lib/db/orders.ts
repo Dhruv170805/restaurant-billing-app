@@ -2,6 +2,7 @@ import { ensureInitialized, getNextSequence } from './mongo'
 import { PaginatedOrders } from '@/types'
 import { Order, OrderItem } from '@/lib/db'
 import { DbOrder, DbMenuItem } from './schema'
+import { upsertCustomerRecord } from './customers'
 
 export async function getOrders(): Promise<Order[]> {
   return (await getOrdersPaginated(1, 1000)).orders
@@ -80,15 +81,15 @@ export async function createOrder(
       name: item.name,
       quantity: item.quantity,
       price: item.price,
+      printedQuantity: 0,
     })
   }
 
   const total = Math.round(serverTotal * 100) / 100
-  const now = new Date()
-  const nowFormatted = now.toISOString().slice(0, 19).replace('T', ' ')
-
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfDayFormatted = startOfDay.toISOString().slice(0, 19).replace('T', ' ')
+  const now = new Date().toISOString()
+  const startOfDay = new Date()
+  startOfDay.setHours(0, 0, 0, 0)
+  const startOfDayFormatted = startOfDay.toISOString()
 
   const c = await db.collection<DbOrder>('orders').countDocuments({
     createdAt: { $gte: startOfDayFormatted },
@@ -108,8 +109,8 @@ export async function createOrder(
     subtotal: total,
     tax: 0,
     total,
-    createdAt: nowFormatted,
-    updatedAt: nowFormatted,
+    createdAt: now,
+    updatedAt: now,
     items: processedItems,
     itemCount: processedItems.reduce((acc, item) => acc + item.quantity, 0),
   }
@@ -146,12 +147,13 @@ export async function addItemsToOrder(orderId: number, items: OrderItem[]): Prom
         name: item.name,
         quantity: item.quantity,
         price: item.price,
+        printedQuantity: 0,
       })
     }
   }
 
   const newTotal = Math.round((order.total + addedTotal) * 100) / 100
-  const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+  const now = new Date().toISOString()
 
   await db.collection<DbOrder>('orders').updateOne(
     { _id: orderId },
@@ -174,7 +176,7 @@ export async function updateOrderStatus(
   updates?: { customerName?: string; customerPhone?: string }
 ): Promise<Order | null> {
   const db = await ensureInitialized()
-  const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+  const now = new Date().toISOString()
 
   const updateDoc: Partial<DbOrder> = { status, updatedAt: now }
   if (paymentMethod) {
@@ -186,11 +188,44 @@ export async function updateOrderStatus(
   const result = await db.collection<DbOrder>('orders').updateOne({ _id: id }, { $set: updateDoc })
 
   if (result.matchedCount === 0) return null
-  return (await getOrder(id)) || null
+
+  const updatedOrder = await getOrder(id)
+  if (!updatedOrder) return null
+
+  // Upsert Customer CRM logic
+  if (status === 'PAID') {
+    const name = updatedOrder.customerName
+    const phone = updatedOrder.customerPhone
+    if (name && phone) {
+      // Async fire-and-forget to upsert into customer database
+      upsertCustomerRecord(name, phone, updatedOrder.total).catch(e => console.error('Failed CRM update:', e))
+    }
+  }
+
+  return updatedOrder
 }
 
 export async function deleteOrder(id: number): Promise<boolean> {
   const db = await ensureInitialized()
   const result = await db.collection<DbOrder>('orders').deleteOne({ _id: id })
   return result.deletedCount > 0
+}
+
+export async function markKOTPrinted(orderId: number): Promise<Order | null> {
+  const db = await ensureInitialized()
+  const order = await db.collection<DbOrder>('orders').findOne({ _id: orderId })
+  if (!order) return null
+
+  const newItems = [...(order.items || [])]
+  for (const item of newItems) {
+    item.printedQuantity = item.quantity
+  }
+
+  const now = new Date().toISOString()
+  await db.collection<DbOrder>('orders').updateOne(
+    { _id: orderId },
+    { $set: { items: newItems, updatedAt: now } }
+  )
+
+  return (await getOrder(orderId)) || null
 }

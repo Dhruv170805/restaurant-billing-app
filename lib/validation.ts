@@ -120,6 +120,9 @@ const VALID_SETTING_KEYS = new Set([
   'taxRate',
   'taxLabel',
   'tableCount',
+  'timezone',
+  'ownerPhone',
+  '_id',
 ])
 
 const KNOWN_CURRENCY_CODES = new Set([
@@ -172,7 +175,9 @@ export function validateSettingsUpdate(body: Record<string, unknown>): Record<st
         break
       case 'restaurantAddress':
       case 'restaurantPhone':
+      case 'ownerPhone':
       case 'restaurantTagline':
+      case '_id':
         validated[key] = validateStringLength(value, key, 0, 200)
         break
       case 'currencySymbol':
@@ -211,6 +216,9 @@ export function validateSettingsUpdate(body: Record<string, unknown>): Record<st
           1,
           100
         )
+        break
+      case 'timezone':
+        validated[key] = validateStringLength(value, 'Timezone', 2, 40)
         break
     }
   }

@@ -12,6 +12,7 @@ export async function initializeSchema(db: Db): Promise<void> {
   if (!collectionNames.includes('categories')) await db.createCollection('categories')
   if (!collectionNames.includes('menu_items')) await db.createCollection('menu_items')
   if (!collectionNames.includes('orders')) await db.createCollection('orders')
+  if (!collectionNames.includes('customers')) await db.createCollection('customers')
   if (!collectionNames.includes('settings')) await db.createCollection('settings')
   if (!collectionNames.includes('counters')) await db.createCollection('counters')
 
@@ -19,6 +20,16 @@ export async function initializeSchema(db: Db): Promise<void> {
   await db.collection('orders').createIndex({ status: 1 })
   await db.collection('orders').createIndex({ tableNumber: 1 })
   await db.collection('orders').createIndex({ createdAt: -1 })
+
+  // Set up 7-day Auto-Delete (TTL) only for PAID orders
+  await db.collection('orders').createIndex(
+    { createdAt: 1 },
+    {
+      expireAfterSeconds: 7 * 24 * 60 * 60, // 7 days in seconds
+      partialFilterExpression: { status: 'PAID' },
+      name: 'ttl_paid_orders_7_days'
+    }
+  )
 
   await seedFromJson(db)
   await seedDefaultSettings(db)
@@ -79,6 +90,7 @@ async function seedDefaultSettings(db: Db): Promise<void> {
     taxRate: 0,
     taxLabel: 'GST',
     tableCount: 12,
+    timezone: 'Asia/Kolkata',
   }
 
   try {

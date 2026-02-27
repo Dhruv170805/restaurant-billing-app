@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { getOrder, updateOrderStatus, deleteOrder } from '@/lib/db'
 import { handleApiError, NotFoundError, ValidationError } from '@/lib/errors'
 import {
@@ -20,16 +22,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       throw new NotFoundError('Order', orderId)
     }
 
-    // Transform to match frontend expectations
-    return NextResponse.json({
-      ...order,
-      items: order.items.map((item) => ({
-        id: item.menuItemId,
-        quantity: item.quantity,
-        priceAtOrder: item.price,
-        menuItem: { name: item.name },
-      })),
-    })
+    return NextResponse.json(order)
   } catch (error) {
     return handleApiError(error)
   }
@@ -79,15 +72,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       throw new NotFoundError('Order', orderId)
     }
 
-    return NextResponse.json({
-      ...order,
-      items: order.items.map((item) => ({
-        id: item.menuItemId,
-        quantity: item.quantity,
-        priceAtOrder: item.price,
-        menuItem: { name: item.name },
-      })),
-    })
+    return NextResponse.json(order)
   } catch (error) {
     return handleApiError(error)
   }

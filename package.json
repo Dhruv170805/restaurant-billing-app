@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@ducanh2912/next-pwa": "^10.2.9",
     "lucide-react": "^0.575.0",
     "mongodb": "^7.1.0",
     "next": "^16.1.6",
@@ -27,7 +26,6 @@
     "eslint-config-next": "^16.1.6",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-    "prettier": "^3.8.1",
     "typescript": "^5"
   }
 }

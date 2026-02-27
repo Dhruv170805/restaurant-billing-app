@@ -4,26 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { toast } from 'sonner'
-import { formatPriceWithSettings, calculateTaxWithSettings } from '@/lib/pricing'
+import { fmtPrice as formatPrice } from '@/lib/format'
+import { calculateTaxWithSettings } from '@/lib/pricing'
 
-interface MenuItem {
-  id: number
-  name: string
-  price: number
-  categoryId: number
-  category: { id: number; name: string }
-}
+import type { AppSettings, MenuItem } from '@/lib/db'
 
 interface CartItem extends MenuItem {
   quantity: number
-}
-
-interface Settings {
-  currencyLocale: string
-  currencyCode: string
-  taxEnabled: boolean
-  taxRate: number
-  taxLabel: string
 }
 
 function POSContent() {
@@ -37,7 +24,7 @@ function POSContent() {
   const [categories, setCategories] = useState<string[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [checkingOut, setCheckingOut] = useState(false)
-  const [settings, setSettings] = useState<Settings | null>(null)
+  const [settings, setSettings] = useState<AppSettings | null>(null)
 
   useEffect(() => {
     const fetchMenu = async () => {
@@ -63,11 +50,7 @@ function POSContent() {
       .catch(console.error)
   }, [])
 
-  const fmtPrice = (amount: number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount
-    if (!settings) return `$${num.toFixed(2)}`
-    return formatPriceWithSettings(num, settings.currencyLocale, settings.currencyCode)
-  }
+  const fmtPrice = (amount: number) => formatPrice(amount, settings)
 
   const addToCart = (item: MenuItem) => {
     setCart((prev) => {

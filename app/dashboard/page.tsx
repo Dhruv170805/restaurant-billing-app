@@ -1,7 +1,7 @@
 'use client'
 
 import { PageHeader } from '@/components/ui/PageHeader'
-import { formatPriceWithSettings } from '@/lib/pricing'
+import { fmtPrice as formatPrice } from '@/lib/format'
 import { useDashboard, useSettings } from '@/hooks/useData'
 import type { Order } from '@/lib/db'
 
@@ -9,10 +9,7 @@ export default function DashboardPage() {
   const { stats, isLoading: statsLoading } = useDashboard()
   const { settings } = useSettings()
 
-  const fmtPrice = (amount: number) => {
-    if (!settings) return `$${amount.toFixed(2)}`
-    return formatPriceWithSettings(amount, settings.currencyLocale, settings.currencyCode)
-  }
+  const fmtPrice = (amount: number) => formatPrice(amount, settings)
 
   if (statsLoading) {
     return (
@@ -24,6 +21,39 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6 print-area" id="dashboard-report">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          @page { margin: 0; }
+          body { 
+            background: white !important;
+            color: black !important;
+            padding: 0 !important;
+          }
+          .print-area {
+            width: 300px !important;
+            max-width: 300px !important;
+            margin: 0 auto !important;
+            padding: 10px !important;
+            background: white !important;
+          }
+          .print-area-hide {
+            display: none !important;
+          }
+          .card {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 5px !important;
+            margin-bottom: 10px !important;
+          }
+          /* Override any glassmorphism / dark mode colors for thermal printer */
+          * {
+            color: black !important;
+            text-shadow: none !important;
+            border-color: #000 !important;
+          }
+        }
+      `}} />
       <div
         className="flex justify-between items-center print-area-hide"
         style={{ marginBottom: '-1rem' }}
@@ -186,7 +216,8 @@ export default function DashboardPage() {
                     #{order.id} {order.tableNumber && `(T-${order.tableNumber})`}
                     <br />
                     <span style={{ fontSize: '0.75rem', color: 'var(--foreground-muted)' }}>
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {new Date(order.createdAt).toLocaleDateString(settings?.currencyLocale || 'en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: settings?.timezone || 'Asia/Kolkata' })}{' '}
+                      {new Date(order.createdAt).toLocaleTimeString(settings?.currencyLocale || 'en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: settings?.timezone || 'Asia/Kolkata' })}
                     </span>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>

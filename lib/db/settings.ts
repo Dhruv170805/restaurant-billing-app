@@ -17,6 +17,8 @@ export async function getSettings(): Promise<AppSettings> {
     taxRate: 0,
     taxLabel: 'GST',
     tableCount: 12,
+    timezone: 'Asia/Kolkata',
+    ownerPhone: '',
     _id: 'app_settings',
   } as AppSettings
 
@@ -35,6 +37,8 @@ export async function getSettings(): Promise<AppSettings> {
     taxRate: Number(settingsDoc.taxRate) ?? defaultSettings.taxRate,
     taxLabel: settingsDoc.taxLabel ?? defaultSettings.taxLabel,
     tableCount: Number(settingsDoc.tableCount) ?? defaultSettings.tableCount,
+    timezone: settingsDoc.timezone ?? defaultSettings.timezone,
+    ownerPhone: settingsDoc.ownerPhone ?? defaultSettings.ownerPhone,
     _id: settingsDoc._id ?? defaultSettings._id,
   } as AppSettings
 }

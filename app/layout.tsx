@@ -35,71 +35,26 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSettingsCompat()
   return (
     <html lang="en">
       <body className={inter.className}>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-          if (!sessionStorage.getItem('force_reload_theme_v3')) {
-            sessionStorage.setItem('force_reload_theme_v3', 'true');
-            window.location.reload(true);
-          }
-        `,
-          }}
-        />
         <nav className="navbar">
           <Link
             href="/"
             style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
           >
-            <svg
-              width="72"
-              height="72"
-              viewBox="0 0 120 120"
-              xmlns="http://www.w3.org/2000/svg"
-              style={{ flexShrink: 0 }}
-            >
-              {/* Shree Logo part */}
-              <text
-                x="10"
-                y="68"
-                fontFamily="Arial, sans-serif"
-                fontSize="52"
-                fontWeight="900"
-                fill="#f37c22"
-                style={{ filter: 'drop-shadow(1px 1px 0px rgba(0,0,0,0.1))' }}
-              >
-                श्री
-              </text>
-
-              {/* ji Logo part */}
-              <text
-                x="66"
-                y="72"
-                fontFamily="Arial, sans-serif"
-                fontSize="58"
-                fontWeight="900"
-                fill="#e61c24"
-                style={{ filter: 'drop-shadow(1px 1px 0px rgba(0,0,0,0.1))' }}
-              >
-                ji
-              </text>
-
-              {/* Subtext */}
-              <text
-                x="60"
-                y="102"
-                fontFamily="Georgia, serif"
-                fontSize="18"
-                fontWeight="bold"
-                fontStyle="italic"
-                fill="#aa0000"
-                textAnchor="middle"
-              >
-                Restaurant
-              </text>
-            </svg>
+            <span
+              style={{
+                fontSize: '1.55rem',
+                fontWeight: 900,
+                background: 'linear-gradient(135deg, #f37c22, #e8521a)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.5px',
+                userSelect: 'none',
+              }}
+            >{settings.restaurant.name}</span>
           </Link>
           <div className="flex gap-6">
             <Link href="/" className="nav-link">
@@ -113,6 +68,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Link>
             <Link href="/dashboard" className="nav-link">
               Sales
+            </Link>
+            <Link href="/messages" className="nav-link">
+              Marketing
             </Link>
             <Link href="/settings" className="nav-link">
               ⚙️
@@ -130,38 +88,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             alignItems: 'center',
             justifyContent: 'center',
             pointerEvents: 'none',
-            opacity: 0.25,
-            filter: 'blur(45px)',
-            transform: 'scale(1.5)',
+            opacity: 0.12,
+            filter: 'blur(50px)',
+            transform: 'scale(2)',
           }}
         >
-          <svg
-            width="80vmin"
-            height="80vmin"
-            viewBox="0 0 120 120"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <text
-              x="10"
-              y="68"
-              fontFamily="Arial, sans-serif"
-              fontSize="52"
-              fontWeight="900"
-              fill="#f37c22"
-            >
-              श्री
-            </text>
-            <text
-              x="66"
-              y="72"
-              fontFamily="Arial, sans-serif"
-              fontSize="58"
-              fontWeight="900"
-              fill="#e61c24"
-            >
-              ji
-            </text>
-          </svg>
+          <img src="/logo.png" alt="" style={{ width: '60vmin', height: '60vmin', objectFit: 'contain' }} />
         </div>
 
         <div style={{ position: 'relative', zIndex: 1 }}>

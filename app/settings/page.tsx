@@ -126,6 +126,21 @@ export default function SettingsPage() {
             />
           </div>
           <div className="form-group">
+            <label className="form-label">
+              Owner/WhatsApp Marketing Number
+              <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--foreground-muted)' }}>
+                Used as the sender for bulk WhatsApp messages (e.g. 919876543210)
+              </span>
+            </label>
+            <input
+              type="text"
+              className="form-input"
+              value={settings.ownerPhone || ''}
+              onChange={(e) => updateField('ownerPhone', e.target.value)}
+              placeholder="e.g. 919876543210"
+            />
+          </div>
+          <div className="form-group">
             <label className="form-label">Receipt Tagline</label>
             <input
               type="text"
@@ -270,6 +285,27 @@ export default function SettingsPage() {
             min="1"
             max="100"
             style={{ maxWidth: '120px' }}
+          />
+        </div>
+      </div>
+
+      {/* Timezone */}
+      <div className="card">
+        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem', fontWeight: 700 }}>🌍 Timezone</h3>
+        <div className="form-group">
+          <label className="form-label">
+            IANA Timezone
+            <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--foreground-muted)' }}>
+              Used for dates on receipts, KOTs, and dashboard (e.g. Asia/Kolkata, America/New_York)
+            </span>
+          </label>
+          <input
+            type="text"
+            className="form-input"
+            value={settings.timezone}
+            onChange={(e) => updateField('timezone', e.target.value)}
+            placeholder="Asia/Kolkata"
+            style={{ maxWidth: '280px' }}
           />
         </div>
       </div>

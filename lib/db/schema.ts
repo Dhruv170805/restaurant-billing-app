@@ -5,6 +5,15 @@ export interface DbCategory extends Document {
   name: string
 }
 
+export interface DbCustomer extends Document {
+  _id: string // Auto-generated string ID or Phone Number
+  name: string
+  phone: string
+  totalOrders: number
+  totalSpent: number
+  lastVisit: string // ISO Date
+}
+
 export interface DbMenuItem extends Document {
   _id: number
   name: string
@@ -25,7 +34,7 @@ export interface DbOrder extends Document {
   createdAt: string
   updatedAt: string
   paymentMethod: string | null
-  items: { menuItemId: number; name: string; quantity: number; price: number }[]
+  items: { menuItemId: number; name: string; quantity: number; price: number; printedQuantity?: number }[]
   itemCount: number
 }
 
@@ -42,6 +51,8 @@ export interface DbSettings extends Document {
   taxRate: number
   taxLabel: string
   tableCount: number
+  timezone: string
+  ownerPhone?: string // WhatsApp Business / Contact Number
 }
 
 export interface DbCounter extends Document {
@@ -54,6 +65,7 @@ export interface DbOrderItem {
   name: string
   quantity: number
   price: number
+  printedQuantity?: number
 }
 
 export interface DbDashboardStats {

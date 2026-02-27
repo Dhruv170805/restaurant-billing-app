@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { formatPriceWithSettings } from '@/lib/pricing'
+import { fmtPrice as formatPrice } from '@/lib/format'
 import { useTables, useSettings } from '@/hooks/useData'
 
 import type { TableInfo } from '@/lib/db'
@@ -13,10 +13,7 @@ export default function Home() {
   const { tables, isLoading: tablesLoading } = useTables()
   const { settings } = useSettings()
 
-  const fmtPrice = (amount: number) => {
-    if (!settings) return `$${amount.toFixed(2)}`
-    return formatPriceWithSettings(amount, settings.currencyLocale, settings.currencyCode)
-  }
+  const fmtPrice = (amount: number) => formatPrice(amount, settings)
 
   const handleTableClick = (table: TableInfo) => {
     if (table.status === 'occupied' && table.order) {

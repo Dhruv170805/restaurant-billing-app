@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Modal } from '@/components/ui/Modal'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { formatPriceWithSettings } from '@/lib/pricing'
+import { fmtPrice as formatPrice } from '@/lib/format'
 import { useMenu, useCategories, useSettings } from '@/hooks/useData'
 
 import type { MenuItem } from '@/lib/db'
@@ -25,11 +25,7 @@ export default function MenuPage() {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const fmtPrice = (amount: number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount
-    if (!settings) return `$${num.toFixed(2)}`
-    return formatPriceWithSettings(num, settings.currencyLocale, settings.currencyCode)
-  }
+  const fmtPrice = (amount: number) => formatPrice(amount, settings)
 
   const allCategories = ['All', ...categories.map((c) => c.name)]
 

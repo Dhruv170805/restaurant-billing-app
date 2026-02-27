@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { formatPriceWithSettings } from '@/lib/pricing'
+import { fmtPrice as formatPrice } from '@/lib/format'
 import { useOrders, useSettings } from '@/hooks/useData'
 
 // No need to import Order or AppSettings when not directly instantiating them here
@@ -12,10 +12,7 @@ export default function OrdersPage() {
   const { orders, isLoading: ordersLoading } = useOrders()
   const { settings } = useSettings()
 
-  const fmtPrice = (amount: number) => {
-    if (!settings) return `$${amount.toFixed(2)}`
-    return formatPriceWithSettings(amount, settings.currencyLocale, settings.currencyCode)
-  }
+  const fmtPrice = (amount: number) => formatPrice(amount, settings)
 
   return (
     <div className="flex flex-col gap-6">
