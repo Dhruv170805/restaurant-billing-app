@@ -2,101 +2,98 @@
 
 **Restaurant Billing & POS System**
 
-This document serves as the operational runbook for deploying, monitoring, backing up, and troubleshooting the production Restaurant Billing application.
+This document serves as the operational runbook for deploying, monitoring, backing up, and troubleshooting the production Restaurant Billing application across Web and Mobile.
 
 ---
 
 ## 1. Architecture Overview
 
-- **Application App**: Next.js 15 (App Router). Built via Docker as a `standalone` Node.js server.
-- **Database Layer**: MySQL 8.0 container. Uses `mysql2/promise` with a global connection pool.
-- **Hosting Strategy**: Docker Compose (single node deployment). Can be easily moved to Kubernetes or ECS.
+- **Web Application**: Next.js 15 (App Router). Built as a `standalone` Node.js server.
+- **Mobile Application**: Native Flutter App (Android/iOS).
+- **Database Layer**: MongoDB (Atlas or Container). Uses official `mongodb` driver with lazy-singleton connection pooling.
+- **Hosting Strategy**: Docker Compose for Web & DB. Mobile requires APK/IPA distribution.
 
 ## 2. Production Deployment
 
-The application is fully containerized. A standard deployment triggers a rebuild of the Next.js standalone container.
+### Web App (Docker)
 
-### Step 1: Deploy / Update
-
-To deploy the latest `main` branch:
+To deploy or update the latest `main` branch:
 
 ```bash
 git pull origin main
 docker-compose up -d --build
 ```
 
-### Step 2: Zero-Downtime Verification
+### Mobile App (Flutter)
 
-Check the web container logs to ensure Next.js is "Ready":
-
-```bash
-docker-compose logs -f web
-```
-
-## 3. Database Backups & Disaster Recovery
-
-### Automated / Manual Backups (mysqldump)
-
-To safely backup the database from the running MySQL container without shutting down the app:
+To build the production Android app:
 
 ```bash
-docker exec $(docker-compose ps -q db) /usr/bin/mysqldump -u root -pmy-secret-pw restaurant_billing > backup_$(date +%F).sql
+cd mobile
+flutter build apk --release
 ```
 
-_Note: Schedule the above command via `cron` to run nightly._
+The resulting file will be at `mobile/build/app/outputs/flutter-apk/app-release.apk`.
+
+## 3. Database Backups & Disaster Recovery (MongoDB)
+
+### Automated / Manual Backups (mongodump)
+
+To safely backup the database from a running MongoDB container:
+
+```bash
+docker exec $(docker-compose ps -q db) mongodump --uri="mongodb://localhost:27017/restaurant_db" --archive > backup_$(date +%F).archive
+```
 
 ### Restoring from Backup
 
-If the database drops or gets corrupted, restore the `backup.sql`:
+To restore the database from an archive:
 
 ```bash
-cat backup.sql | docker exec -i $(docker-compose ps -q db) /usr/bin/mysql -u root -pmy-secret-pw restaurant_billing
+cat backup.archive | docker exec -i $(docker-compose ps -q db) mongorestore --archive
 ```
 
 ## 4. Monitoring & Alerting
 
 ### Health Checks
 
-The application relies on `/api/settings` and `/api/dashboard` returning `200 OK`. Set up an external Uptime monitor (e.g., UptimeRobot, Datadog, Pingdom) pointing to:
-`http://YOUR_SERVER_IP:3000/`
+The application relies on `/api/health` returning `200 OK`. Set up an external Uptime monitor pointing to:
+`http://YOUR_SERVER_IP:3000/api/health`
 
 ### Inspecting Logs
 
-- **Application Logs:** `docker-compose logs --tail=100 -f web` (Look for `TypeError` or React Hydration exceptions).
-- **Database Logs:** `docker-compose logs --tail=100 -f db` (Look for `Too many connections` or `Access denied`).
+- **Application Logs**: `docker-compose logs --tail=100 -f web`
+- **Database Logs**: `docker-compose logs --tail=100 -f db`
 
 ## 5. Known Troubleshooting Scenarios
 
-### 🔴 Symptom: "Too many connections" Error
+### 🔴 Symptom: Mobile App "TimeoutException"
 
-**Cause:** Next.js development HMR (Hot Module Replacement) flooded MySQL, or the production pool size (10) is exhausted by high traffic.
-**Resolution:**
+**Cause**: The phone cannot reach the computer's local IP on the network.
+**Resolution**:
+1. Ensure both devices are on the same Wi-Fi.
+2. Check your Mac/PC local IP (e.g., `192.168.x.x`).
+3. Open the **Settings** tab in the mobile app and update the **Server IP** field.
 
-1. The global cache specifically handles HMR in Dev.
-2. If this occurs in Production, increase `connectionLimit` in `lib/db.ts` to `50` and restart the containers:
+### 🔴 Symptom: MongoDB Connection Failed
 
-```bash
-docker-compose restart web
-```
+**Cause**: `MONGODB_URI` in `.env.local` is incorrect or the database container is down.
+**Resolution**:
+1. Verify the connection string in `.env.local`.
+2. check container status: `docker-compose ps`.
+3. Check network connectivity to MongoDB Atlas if using cloud hosting.
 
 ### 🔴 Symptom: App crashes on "Port 3000 is already in use"
 
-**Cause:** Another node process (like a local `npm run dev`) or container is blocking the port.
-**Resolution:**
-Kill the dangling process:
-
+**Cause**: Another process is blocking the port.
+**Resolution**:
 ```bash
 sudo lsof -i :3000
 sudo kill -9 <PID>
 docker-compose up -d
 ```
 
-### 🔴 Symptom: Database data is missing after restart
-
-**Cause:** The Docker Volume `db_data` was pruned or not mapped correctly.
-**Resolution:** Verify that `volumes: - db_data:/var/lib/mysql` is actively linked in `docker-compose.yml`. Never run `docker-compose down -v` unless you intentionally want to format the database.
-
 ## 6. Capacity & Scaling
 
-- **Vertical Scaling**: For heavy loads (>50 active staff tablets), upgrade the underlying Host Server RAM. Allocate more memory configured via Docker.
-- **Horizontal Scaling**: If running multiple `web` replicas, Next.js handles it natively since sessions are stateless. However, the exact MySQL `db` connection limits must be increased significantly.
+- **Vertical Scaling**: Upgrade host RAM/CPU for higher concurrency.
+- **Horizontal Scaling**: Next.js is stateless and supports multiple replicas. MongoDB handles scaling via Shards/Replica Sets.
