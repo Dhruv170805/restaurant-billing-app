@@ -193,10 +193,6 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
 
         {/* === ORDER META === */}
         <div style={{ fontSize: '0.78rem', marginBottom: '0.5rem', lineHeight: '1.7' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Name: {customerName || order.customerName || '_______________'}</span>
-            <span>Mob: {customerPhone || order.customerPhone || '_______________'}</span>
-          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ccc', paddingBottom: '0.3rem' }}>
             <span>
               Date: {new Date(order.createdAt).toLocaleDateString(settings?.currencyLocale || 'en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: settings?.timezone || 'Asia/Kolkata' })}{' '}
@@ -271,7 +267,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         >
           <h3 style={{ marginBottom: '1.5rem', color: 'var(--foreground)', textAlign: 'center' }}>Complete Order</h3>
 
-          {/* STEP 1: Customer Details */}
+          {/* STEP 1: Select Payment Method */}
           <div style={{
             marginBottom: '2rem',
             background: 'rgba(255,255,255,0.03)',
@@ -281,86 +277,9 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
           }}>
             <h4 style={{ marginBottom: '1rem', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ background: 'var(--primary)', color: '#fff', width: '24px', height: '24px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>1</span>
-              Customer Details
+              Select Payment Method
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--foreground-muted)' }}>
-                  Customer Name *
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={handleNameChange}
-                  list="customer-list"
-                  className="form-input"
-                  placeholder="Enter full name"
-                  autoFocus
-                  required
-                />
-                <datalist id="customer-list">
-                  {customers.map((c, i) => (
-                    <option key={i} value={c.name} />
-                  ))}
-                </datalist>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--foreground-muted)' }}>
-                  Customer Phone *
-                </label>
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="form-input"
-                  placeholder="Enter phone number"
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* STEP 2: Print Bill */}
-          <div style={{
-            marginBottom: '2rem',
-            background: 'rgba(255,255,255,0.03)',
-            padding: '1.5rem',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--glass-border)',
-            opacity: !customerName.trim() ? 0.5 : 1,
-            pointerEvents: !customerName.trim() ? 'none' : 'auto',
-            transition: 'all 0.3s'
-          }}>
-            <h4 style={{ marginBottom: '1rem', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ background: 'var(--primary)', color: '#fff', width: '24px', height: '24px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>2</span>
-              Print Final Bill
-            </h4>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button onClick={() => window.print()} className="btn btn-primary" style={{ flex: 1, padding: '1rem', fontSize: '1.1rem' }}>
-                🖨️ Print Customer Bill
-              </button>
-            </div>
-            <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--foreground-muted)', textAlign: 'center' }}>
-              Hand the printed bill to the customer before collecting payment.
-            </p>
-          </div>
-
-          {/* STEP 3: Payment & Settle */}
-          <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            padding: '1.5rem',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--glass-border)',
-            opacity: !customerName.trim() ? 0.5 : 1,
-            pointerEvents: !customerName.trim() ? 'none' : 'auto',
-            transition: 'all 0.3s'
-          }}>
-            <h4 style={{ marginBottom: '1rem', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ background: 'var(--primary)', color: '#fff', width: '24px', height: '24px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>3</span>
-              Receive Payment & Settle
-            </h4>
-
-            <div className="flex gap-4 justify-center payment-methods-mobile" style={{ marginBottom: '1.5rem' }}>
+            <div className="flex gap-4 justify-center payment-methods-mobile">
               <button
                 className={`btn ${selectedPayment === 'CASH' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setSelectedPayment('CASH')}
@@ -391,25 +310,100 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
                 Unpaid
               </button>
             </div>
-
-            <button
-              className="checkout-btn"
-              disabled={!selectedPayment || !customerName.trim() || !customerPhone.trim()}
-              onClick={() => handleStatusUpdate(selectedPayment === 'UNPAID' ? 'UNPAID' : 'PAID', selectedPayment || undefined)}
-              style={{
-                width: '100%',
-                background: selectedPayment === 'UNPAID' ? 'var(--warning)' : undefined,
-                boxShadow: selectedPayment === 'UNPAID' ? '0 8px 30px rgba(245, 158, 11, 0.4)' : undefined,
-              }}
-            >
-              ✓ {selectedPayment === 'UNPAID' ? 'Save as Unpaid Dues' : 'Settle Bill & Complete'} ({fmtPrice(order.total)})
-            </button>
-            {!customerPhone.trim() && (
-              <p style={{ color: 'var(--warning)', fontSize: '0.8rem', textAlign: 'center', marginTop: '0.5rem' }}>
-                Customer phone number is strictly required to complete the order.
-              </p>
-            )}
           </div>
+
+          {/* STEP 2: Customer Details */}
+          {selectedPayment != null && (
+            <div style={{
+              marginBottom: '2rem',
+              background: 'rgba(255,255,255,0.03)',
+              padding: '1.5rem',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--glass-border)',
+              animation: 'fadeIn 0.3s ease-out'
+            }}>
+              <h4 style={{ marginBottom: '1rem', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ background: 'var(--primary)', color: '#fff', width: '24px', height: '24px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>2</span>
+                Customer Details
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--foreground-muted)' }}>
+                    Customer Name {selectedPayment === 'UNPAID' ? '*' : '(Optional)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={handleNameChange}
+                    list="customer-list"
+                    className="form-input"
+                    placeholder="Enter full name"
+                    autoFocus
+                    required={selectedPayment === 'UNPAID'}
+                  />
+                  <datalist id="customer-list">
+                    {customers.map((c, i) => (
+                      <option key={i} value={c.name} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--foreground-muted)' }}>
+                    Customer Phone {selectedPayment === 'UNPAID' ? '*' : '(Optional)'}
+                  </label>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="form-input"
+                    placeholder="Enter phone number"
+                    required={selectedPayment === 'UNPAID'}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Print Bill & Settle */}
+          {selectedPayment != null && (
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              padding: '1.5rem',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--glass-border)',
+              animation: 'fadeIn 0.3s ease-out'
+            }}>
+              <h4 style={{ marginBottom: '1rem', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ background: 'var(--primary)', color: '#fff', width: '24px', height: '24px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>3</span>
+                Complete Transaction
+              </h4>
+
+              <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+                <button onClick={() => window.print()} className="btn btn-secondary" style={{ padding: '1rem', fontSize: '1rem' }}>
+                  🖨️ Print Customer Bill
+                </button>
+
+                <button
+                  className="checkout-btn"
+                  disabled={selectedPayment === 'UNPAID' && (!customerName.trim() || !customerPhone.trim())}
+                  onClick={() => handleStatusUpdate(selectedPayment === 'UNPAID' ? 'UNPAID' : 'PAID', selectedPayment || undefined)}
+                  style={{
+                    width: '100%',
+                    background: selectedPayment === 'UNPAID' ? 'var(--warning)' : undefined,
+                    boxShadow: selectedPayment === 'UNPAID' ? '0 8px 30px rgba(245, 158, 11, 0.4)' : undefined,
+                  }}
+                >
+                  ✓ {selectedPayment === 'UNPAID' ? 'Save as Unpaid Dues' : 'Settle Bill & Complete'} ({fmtPrice(order.total)})
+                </button>
+              </div>
+
+              {selectedPayment === 'UNPAID' && (!customerName.trim() || !customerPhone.trim()) && (
+                <p style={{ color: 'var(--warning)', fontSize: '0.8rem', textAlign: 'center', marginTop: '0.75rem' }}>
+                  Customer Name and Phone are required for Unpaid orders.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
