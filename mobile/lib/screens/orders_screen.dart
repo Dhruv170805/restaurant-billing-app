@@ -178,7 +178,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         labelText: 'Payment Method',
                         border: OutlineInputBorder(),
                       ),
-                      value: paymentMethod,
+                      initialValue: paymentMethod,
                       items: const [
                         DropdownMenuItem(value: 'CASH', child: Text('Cash')),
                         DropdownMenuItem(
@@ -235,19 +235,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               customerPhone: customerPhone.trim(),
                             );
                             if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Order settled successfully!'),
-                              ),
-                            );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Order settled successfully!'),
+                                ),
+                              );
+                            }
                             loadOrders();
                           } catch (e) {
                             if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Failed to settle order: $e'),
-                              ),
-                            );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to settle order: $e'),
+                                ),
+                              );
+                            }
                           }
                         }
                       : null,

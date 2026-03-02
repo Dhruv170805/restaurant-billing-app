@@ -51,7 +51,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
       color: const Color(0xFF111111),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: color.withOpacity(0.5), width: 2),
+        side: BorderSide(color: color.withValues(alpha: 0.5), width: 2),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -117,6 +117,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not launch WhatsApp.')),
       );

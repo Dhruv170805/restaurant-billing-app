@@ -100,10 +100,12 @@ class ApiService {
     final url = await baseUrl;
     final Map<String, dynamic> reqBody = {'status': status};
     if (paymentMethod != null) reqBody['paymentMethod'] = paymentMethod;
-    if (customerName != null && customerName.isNotEmpty)
+    if (customerName != null && customerName.isNotEmpty) {
       reqBody['customerName'] = customerName;
-    if (customerPhone != null && customerPhone.isNotEmpty)
+    }
+    if (customerPhone != null && customerPhone.isNotEmpty) {
       reqBody['customerPhone'] = customerPhone;
+    }
 
     final response = await http
         .put(
