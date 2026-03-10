@@ -4,25 +4,47 @@ import '../models/menu_item.dart';
 import '../models/order.dart';
 
 class ApiService {
-  // Hardcoded public Vercel URL since this app is now public
   final String _baseUrl = 'https://restaurant-billing-app-self.vercel.app';
 
   Future<String> get baseUrl async => '$_baseUrl/api';
   Future<String> get webUrl async => _baseUrl;
 
-  Future<List<MenuItem>> fetchMenuItems() async {
+  // ─── In-memory cache ──────────────────────────────────────────────────────
+  static List<MenuItem>? _menuCache;
+  static DateTime? _menuCacheTime;
+  static Map<String, dynamic>? _settingsCache;
+  static DateTime? _settingsCacheTime;
+
+  static const _cacheTtl = Duration(minutes: 3); // Cache for 3 minutes
+
+  bool _isCacheValid(DateTime? cacheTime) {
+    if (cacheTime == null) return false;
+    return DateTime.now().difference(cacheTime) < _cacheTtl;
+  }
+
+  static void invalidateMenuCache() => _menuCache = null;
+  static void invalidateSettingsCache() => _settingsCache = null;
+
+  // ─── Menu ──────────────────────────────────────────────────────────────────
+  Future<List<MenuItem>> fetchMenuItems({bool forceRefresh = false}) async {
+    if (!forceRefresh && _menuCache != null && _isCacheValid(_menuCacheTime)) {
+      return _menuCache!;
+    }
     final url = await baseUrl;
     final response = await http
         .get(Uri.parse('$url/menu'))
         .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      return data.map((json) => MenuItem.fromJson(json)).toList();
+      _menuCache = data.map((json) => MenuItem.fromJson(json)).toList();
+      _menuCacheTime = DateTime.now();
+      return _menuCache!;
     } else {
       throw Exception('Failed to load menu items');
     }
   }
 
+  // ─── Orders ────────────────────────────────────────────────────────────────
   Future<List<Order>> fetchOrders() async {
     final url = await baseUrl;
     final response = await http
@@ -36,18 +58,29 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> fetchSettings() async {
+  // ─── Settings ──────────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> fetchSettings({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _settingsCache != null &&
+        _isCacheValid(_settingsCacheTime)) {
+      return _settingsCache!;
+    }
     final url = await baseUrl;
     final response = await http
         .get(Uri.parse('$url/settings'))
         .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
-      return json.decode(response.body) as Map<String, dynamic>;
+      _settingsCache = json.decode(response.body) as Map<String, dynamic>;
+      _settingsCacheTime = DateTime.now();
+      return _settingsCache!;
     } else {
       throw Exception('Failed to load settings');
     }
   }
 
+  // ─── Dashboard Stats ───────────────────────────────────────────────────────
   Future<Map<String, dynamic>> fetchDashboardStats() async {
     final url = await baseUrl;
     final response = await http
@@ -60,6 +93,7 @@ class ApiService {
     }
   }
 
+  // ─── Create Order ──────────────────────────────────────────────────────────
   Future<Order> createOrder(Map<String, dynamic> orderData) async {
     final url = await baseUrl;
     final response = await http
@@ -77,6 +111,7 @@ class ApiService {
     }
   }
 
+  // ─── Update Order Status ───────────────────────────────────────────────────
   Future<void> updateOrderStatus(
     int orderId,
     String status, {
@@ -107,6 +142,7 @@ class ApiService {
     }
   }
 
+  // ─── Menu CRUD ─────────────────────────────────────────────────────────────
   Future<void> createMenuItem(Map<String, dynamic> itemData) async {
     final url = await baseUrl;
     final response = await http
@@ -119,6 +155,7 @@ class ApiService {
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to create menu item');
     }
+    invalidateMenuCache();
   }
 
   Future<void> updateMenuItem(int id, Map<String, dynamic> itemData) async {
@@ -131,6 +168,7 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Failed to update menu item');
     }
+    invalidateMenuCache();
   }
 
   Future<void> updateSettings(Map<String, dynamic> settingsData) async {
@@ -146,6 +184,7 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Failed to update settings');
     }
+    invalidateSettingsCache();
   }
 
   Future<void> deleteMenuItem(int id) async {
@@ -156,5 +195,6 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Failed to delete menu item');
     }
+    invalidateMenuCache();
   }
 }
