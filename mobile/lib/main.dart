@@ -22,7 +22,7 @@ class RestaurantBillingApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF050505),
+        scaffoldBackgroundColor: const Color(0xFF030303), // Deeper black
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFFF37C22),
           secondary: Color(0xFFE61C24),
@@ -42,11 +42,14 @@ class RestaurantBillingApp extends StatelessWidget {
           ),
         ),
         cardTheme: const CardThemeData(
-          color: Color(0xFF111111),
+          color: Color(0x11FFFFFF), // More transparent
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(14)),
-            side: BorderSide(color: Color(0x12FFFFFF), width: 1),
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+            side: BorderSide(
+              color: Color(0x33FFFFFF),
+              width: 1,
+            ), // Slightly more visible border
           ),
         ),
         dividerColor: const Color(0x12FFFFFF),

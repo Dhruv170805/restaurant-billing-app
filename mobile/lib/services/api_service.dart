@@ -1,27 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/menu_item.dart';
 import '../models/order.dart';
 
 class ApiService {
-  Future<String> get baseUrl async {
-    final prefs = await SharedPreferences.getInstance();
-    // Default to local wifi IP for physical device testing
-    final customIp = prefs.getString('server_ip') ?? '10.0.2.2';
-    return 'http://$customIp:3000/api';
-  }
+  // Hardcoded public Vercel URL since this app is now public
+  final String _baseUrl = 'https://restaurant-billing-app-self.vercel.app';
 
-  Future<String> get webUrl async {
-    final prefs = await SharedPreferences.getInstance();
-    final customIp = prefs.getString('server_ip') ?? '10.0.2.2';
-    return 'http://$customIp:3000';
-  }
-
-  Future<void> setBaseUrlIP(String ip) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('server_ip', ip);
-  }
+  Future<String> get baseUrl async => '$_baseUrl/api';
+  Future<String> get webUrl async => _baseUrl;
 
   Future<List<MenuItem>> fetchMenuItems() async {
     final url = await baseUrl;

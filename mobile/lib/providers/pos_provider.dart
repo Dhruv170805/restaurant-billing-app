@@ -30,6 +30,12 @@ class PosProvider extends ChangeNotifier {
 
   void setSettings(Map<String, dynamic> newSettings) {
     _settings = newSettings;
+    // Default to Indian Rupee if no currency is defined
+    if (!_settings.containsKey('currencySymbol') ||
+        _settings['currencySymbol'] == null ||
+        _settings['currencySymbol'].toString().isEmpty) {
+      _settings['currencySymbol'] = '₹';
+    }
     notifyListeners();
   }
 

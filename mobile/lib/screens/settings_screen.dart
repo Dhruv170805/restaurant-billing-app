@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -18,7 +17,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController currencyController = TextEditingController();
   final TextEditingController taxController = TextEditingController();
-  final TextEditingController serverIpController = TextEditingController();
 
   @override
   void initState() {
@@ -28,17 +26,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> loadSettings() async {
     setState(() => isLoading = true);
-
-    // Always load the Local IP first so the user can see/fix it if the server is down
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      serverIpController.text = prefs.getString('server_ip') ?? '10.0.2.2';
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load local preferences: $e')),
-      );
-    }
 
     try {
       final fetchedSettings = await api.fetchSettings();
@@ -63,9 +50,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => isLoading = true);
 
     try {
-      // Save IP locally
-      await api.setBaseUrlIP(serverIpController.text);
-
       // Save business settings remotely
       final updatedSettings = {
         'restaurantName': nameController.text,
@@ -160,20 +144,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    'System Configuration',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: serverIpController,
-                    decoration: const InputDecoration(
-                      labelText: 'Server IP Address',
-                      prefixIcon: Icon(Icons.wifi),
-                      helperText: 'E.g. 192.168.1.5',
                     ),
                   ),
                   const SizedBox(height: 32),
