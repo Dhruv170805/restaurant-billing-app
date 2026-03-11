@@ -122,6 +122,27 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
     }
   }
 
+  Future<void> _generateProfitReport() async {
+    try {
+      final settings = Provider.of<PosProvider>(
+        context,
+        listen: false,
+      ).settings;
+      final currency = settings['currencySymbol'] ?? '₹';
+      final doc = await PdfGenerator.generateDailyReport(
+        stats,
+        settings,
+        currency,
+      );
+      await Printing.layoutPdf(onLayout: (format) => doc.save());
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to generate report: $e')));
+    }
+  }
+
   /// Shows an in-app bill summary bottom sheet for an unpaid order
   void _showBillModal(Map<String, dynamic> order, String currency) {
     final total = (order['total'] ?? 0).toDouble();
@@ -462,6 +483,14 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
               ),
             ),
             actions: [
+              IconButton(
+                icon: const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: AppColors.orange,
+                ),
+                onPressed: _generateProfitReport,
+                tooltip: 'Download Daily Profit Report',
+              ),
               IconButton(
                 icon: const Icon(Icons.refresh_rounded),
                 onPressed: loadStats,
@@ -1212,7 +1241,10 @@ class _TopSellingChart extends StatelessWidget {
       );
     }
 
-    final maxQty = topItems.map((e) => (e['qty'] as num).toDouble()).reduce((a, b) => a > b ? a : b).clamp(1.0, double.infinity);
+    final maxQty = topItems
+        .map((e) => (e['qty'] as num).toDouble())
+        .reduce((a, b) => a > b ? a : b)
+        .clamp(1.0, double.infinity);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -1362,11 +1394,16 @@ class _AiPredictionCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.orange.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.orange.withValues(alpha: 0.4)),
+                      border: Border.all(
+                        color: AppColors.orange.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: const Text(
                       'AI · 7-day model',
@@ -1381,7 +1418,10 @@ class _AiPredictionCard extends StatelessWidget {
                   const Spacer(),
                   if (yesterdayRevenue > 0)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: deltaColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
@@ -1466,7 +1506,11 @@ class _AiPredictionCard extends StatelessWidget {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    const Icon(Icons.local_fire_department, size: 14, color: AppColors.amber),
+                    const Icon(
+                      Icons.local_fire_department,
+                      size: 14,
+                      color: AppColors.amber,
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       'Predicted peak: $peakHours',

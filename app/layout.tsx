@@ -60,6 +60,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" className="nav-link">
               Tables
             </Link>
+            <Link href="/tables/qr" className="nav-link">
+              QR
+            </Link>
             <Link href="/menu" className="nav-link">
               Menu
             </Link>
@@ -96,7 +99,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <img src="/logo.png" alt="" style={{ width: '60vmin', height: '60vmin', objectFit: 'contain' }} />
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ position: 'relative', zIndex: 1, paddingTop: '4.8rem' }}>
           <main className="container animate-fade-in">{children}</main>
         </div>
 

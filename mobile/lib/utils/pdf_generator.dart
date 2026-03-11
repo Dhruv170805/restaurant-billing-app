@@ -261,4 +261,228 @@ class PdfGenerator {
 
     return pdf;
   }
+
+  static Future<pw.Document> generateDailyReport(
+    Map<String, dynamic> stats,
+    Map<String, dynamic> settings,
+    String currency,
+  ) async {
+    final pdf = pw.Document();
+    final regular = await _unicodeFont();
+    final bold = await _unicodeFont(bold: true);
+    final italic = await _unicodeFontItalic();
+
+    final todayRev = (stats['todayRevenue'] ?? 0.0) as num;
+    final cashRev = (stats['cashRevenue'] ?? 0.0) as num;
+    final onlineRev = (stats['onlineRevenue'] ?? 0.0) as num;
+    final unpaidRev = (stats['unpaidRevenue'] ?? 0.0) as num;
+    final todayOrd = stats['todayOrders'] ?? 0;
+    final topItems = List<Map<String, dynamic>>.from(stats['topItems'] ?? []);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        settings['restaurantName'] ?? 'Restaurant',
+                        style: pw.TextStyle(
+                          font: bold,
+                          fontSize: 24,
+                          color: const PdfColor.fromInt(0xFF0B0B0F),
+                        ),
+                      ),
+                      if (settings['restaurantAddress'] != null)
+                        pw.Text(
+                          settings['restaurantAddress'],
+                          style: pw.TextStyle(
+                            font: regular,
+                            fontSize: 10,
+                            color: const PdfColor.fromInt(0xFF666666),
+                          ),
+                        ),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'DAILY SALES REPORT',
+                        style: pw.TextStyle(
+                          font: bold,
+                          fontSize: 14,
+                          color: const PdfColor.fromInt(0xFFFF6A00),
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        DateTime.now().toString().substring(0, 10),
+                        style: pw.TextStyle(font: regular, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 24),
+              pw.Divider(color: const PdfColor.fromInt(0xFFEEEEEE)),
+              pw.SizedBox(height: 24),
+
+              // Summary metric boxes
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  _metricBox(
+                    'Total Revenue',
+                    '$currency${todayRev.toStringAsFixed(2)}',
+                    bold,
+                    regular,
+                    const PdfColor.fromInt(0xFFFF6A00),
+                  ),
+                  _metricBox(
+                    'Cash Payments',
+                    '$currency${cashRev.toStringAsFixed(2)}',
+                    bold,
+                    regular,
+                    const PdfColor.fromInt(0xFF22C55E),
+                  ),
+                  _metricBox(
+                    'Online Payments',
+                    '$currency${onlineRev.toStringAsFixed(2)}',
+                    bold,
+                    regular,
+                    const PdfColor.fromInt(0xFF0A84FF),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 16),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.start,
+                children: [
+                  _metricBox(
+                    'Total Orders',
+                    '$todayOrd',
+                    bold,
+                    regular,
+                    const PdfColor.fromInt(0xFF0B0B0F),
+                  ),
+                  pw.SizedBox(width: 16),
+                  _metricBox(
+                    'Unpaid Dues',
+                    '$currency${unpaidRev.toStringAsFixed(2)}',
+                    bold,
+                    regular,
+                    const PdfColor.fromInt(0xFFF87171),
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 32),
+
+              // Top Selling Section
+              pw.Text(
+                'TOP SELLING ITEMS (LAST 7 DAYS)',
+                style: pw.TextStyle(
+                  font: bold,
+                  fontSize: 12,
+                  color: const PdfColor.fromInt(0xFF888888),
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              if (topItems.isEmpty)
+                pw.Text(
+                  'No sales data available yet.',
+                  style: pw.TextStyle(font: italic, fontSize: 10),
+                )
+              else
+                pw.TableHelper.fromTextArray(
+                  context: context,
+                  cellPadding: const pw.EdgeInsets.all(8),
+                  headerDecoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFFF8F8F8),
+                  ),
+                  headerStyle: pw.TextStyle(font: bold, fontSize: 10),
+                  cellStyle: pw.TextStyle(font: regular, fontSize: 10),
+                  border: pw.TableBorder.all(
+                    color: const PdfColor.fromInt(0xFFE0E0E0),
+                    width: 0.5,
+                  ),
+                  headers: ['Item Name', 'Quantity Sold', 'Revenue Generated'],
+                  data: topItems
+                      .map(
+                        (item) => [
+                          item['name'] ?? '—',
+                          '${item['qty']}',
+                          '$currency${(item['revenue'] as num).toStringAsFixed(2)}',
+                        ],
+                      )
+                      .toList(),
+                ),
+
+              pw.Spacer(),
+              pw.Divider(color: const PdfColor.fromInt(0xFFEEEEEE)),
+              pw.SizedBox(height: 8),
+              pw.Center(
+                child: pw.Text(
+                  'Generated automatically by the POS System',
+                  style: pw.TextStyle(
+                    font: italic,
+                    fontSize: 9,
+                    color: const PdfColor.fromInt(0xFFAAAAAA),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf;
+  }
+
+  static pw.Widget _metricBox(
+    String label,
+    String value,
+    pw.Font bold,
+    pw.Font regular,
+    PdfColor color,
+  ) {
+    return pw.Container(
+      width: 140,
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFFEEEEEE)),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            label.toUpperCase(),
+            style: pw.TextStyle(
+              font: bold,
+              fontSize: 8,
+              color: const PdfColor.fromInt(0xFF888888),
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            value,
+            style: pw.TextStyle(font: bold, fontSize: 16, color: color),
+          ),
+        ],
+      ),
+    );
+  }
 }
