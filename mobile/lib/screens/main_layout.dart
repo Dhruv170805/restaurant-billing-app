@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'sales_dashboard_screen.dart';
 import 'dashboard.dart';
 import 'orders_screen.dart';
+import 'kds_screen.dart';
 import 'menu_screen.dart';
 import 'settings_screen.dart';
+import '../utils/app_colors.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -22,6 +24,7 @@ class _MainLayoutState extends State<MainLayout> {
     _NavItem(Icons.bar_chart_rounded, Icons.bar_chart_rounded, 'Sales'),
     _NavItem(Icons.table_restaurant_outlined, Icons.table_restaurant, 'Tables'),
     _NavItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Orders'),
+    _NavItem(Icons.soup_kitchen_outlined, Icons.soup_kitchen, 'Kitchen'),
     _NavItem(Icons.restaurant_menu_outlined, Icons.restaurant_menu, 'Menu'),
     _NavItem(Icons.settings_outlined, Icons.settings_rounded, 'Settings'),
   ];
@@ -69,6 +72,7 @@ class _MainLayoutState extends State<MainLayout> {
           SalesDashboardScreen(),
           DashboardScreen(),
           OrdersScreen(),
+          KDSScreen(),
           MenuScreen(),
           SettingsScreen(),
         ],
@@ -125,7 +129,7 @@ class _MainLayoutState extends State<MainLayout> {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFFF6B00).withValues(alpha: 0.18)
+              ? AppColors.orangeAlt.withValues(alpha: 0.18)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
           border: isSelected
@@ -138,7 +142,7 @@ class _MainLayoutState extends State<MainLayout> {
             Icon(
               isSelected ? item.activeIcon : item.icon,
               color: isSelected
-                  ? const Color(0xFFFF6B00)
+                  ? AppColors.orangeAlt
                   : Colors.white.withValues(alpha: 0.4),
               size: 22,
             ),
@@ -152,7 +156,7 @@ class _MainLayoutState extends State<MainLayout> {
                         Text(
                           item.label,
                           style: const TextStyle(
-                            color: Color(0xFFFF6B00),
+                            color: AppColors.orangeAlt,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.2,

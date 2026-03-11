@@ -1,61 +1,87 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import '../models/menu_item.dart';
 import '../models/order.dart';
+import '../utils/app_colors.dart';
 
 class ApiService {
-  final String _baseUrl = 'https://restaurant-billing-app-self.vercel.app';
+  static const String _baseUrl =
+      'https://restaurant-billing-app-self.vercel.app';
+  static const String _apiBase = '$_baseUrl/api';
 
-  Future<String> get baseUrl async => '$_baseUrl/api';
-  Future<String> get webUrl async => _baseUrl;
+  /// Sync getter — no need for async since the URL is constant.
+  String get baseUrl => _apiBase;
+  String get webUrl => _baseUrl;
 
   // ─── In-memory cache ──────────────────────────────────────────────────────
   static List<MenuItem>? _menuCache;
   static DateTime? _menuCacheTime;
   static Map<String, dynamic>? _settingsCache;
   static DateTime? _settingsCacheTime;
-
-  static const _cacheTtl = Duration(minutes: 3); // Cache for 3 minutes
+  static Map<String, dynamic>? _dashboardCache;
+  static DateTime? _dashboardCacheTime;
 
   bool _isCacheValid(DateTime? cacheTime) {
     if (cacheTime == null) return false;
-    return DateTime.now().difference(cacheTime) < _cacheTtl;
+    return DateTime.now().difference(cacheTime) < AppDurations.cacheTtl;
   }
 
   static void invalidateMenuCache() => _menuCache = null;
   static void invalidateSettingsCache() => _settingsCache = null;
+  static void invalidateDashboardCache() => _dashboardCache = null;
+  static void invalidateAll() {
+    _menuCache = null;
+    _settingsCache = null;
+    _dashboardCache = null;
+  }
+
+  // ─── Shared request helper ────────────────────────────────────────────────
+  Future<http.Response> _get(String path) =>
+      http.get(Uri.parse('$baseUrl$path')).timeout(AppDurations.httpTimeout);
+
+  Future<http.Response> _post(String path, Map<String, dynamic> body) => http
+      .post(
+        Uri.parse('$baseUrl$path'),
+        headers: const {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      )
+      .timeout(AppDurations.httpTimeout);
+
+  Future<http.Response> _put(String path, Map<String, dynamic> body) => http
+      .put(
+        Uri.parse('$baseUrl$path'),
+        headers: const {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      )
+      .timeout(AppDurations.httpTimeout);
+
+  Future<http.Response> _delete(String path) =>
+      http.delete(Uri.parse('$baseUrl$path')).timeout(AppDurations.httpTimeout);
 
   // ─── Menu ──────────────────────────────────────────────────────────────────
   Future<List<MenuItem>> fetchMenuItems({bool forceRefresh = false}) async {
     if (!forceRefresh && _menuCache != null && _isCacheValid(_menuCacheTime)) {
       return _menuCache!;
     }
-    final url = await baseUrl;
-    final response = await http
-        .get(Uri.parse('$url/menu'))
-        .timeout(const Duration(seconds: 10));
+    final response = await _get('/menu');
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      _menuCache = data.map((json) => MenuItem.fromJson(json)).toList();
+      _menuCache = data.map((j) => MenuItem.fromJson(j)).toList();
       _menuCacheTime = DateTime.now();
       return _menuCache!;
-    } else {
-      throw Exception('Failed to load menu items');
     }
+    throw Exception('Failed to load menu items (${response.statusCode})');
   }
 
   // ─── Orders ────────────────────────────────────────────────────────────────
   Future<List<Order>> fetchOrders() async {
-    final url = await baseUrl;
-    final response = await http
-        .get(Uri.parse('$url/orders'))
-        .timeout(const Duration(seconds: 10));
+    final response = await _get('/orders');
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      return data.map((json) => Order.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load orders');
+      return data.map((j) => Order.fromJson(j)).toList();
     }
+    throw Exception('Failed to load orders (${response.statusCode})');
   }
 
   // ─── Settings ──────────────────────────────────────────────────────────────
@@ -67,48 +93,47 @@ class ApiService {
         _isCacheValid(_settingsCacheTime)) {
       return _settingsCache!;
     }
-    final url = await baseUrl;
-    final response = await http
-        .get(Uri.parse('$url/settings'))
-        .timeout(const Duration(seconds: 10));
+    final response = await _get('/settings');
     if (response.statusCode == 200) {
       _settingsCache = json.decode(response.body) as Map<String, dynamic>;
       _settingsCacheTime = DateTime.now();
       return _settingsCache!;
-    } else {
-      throw Exception('Failed to load settings');
     }
+    throw Exception('Failed to load settings (${response.statusCode})');
   }
 
   // ─── Dashboard Stats ───────────────────────────────────────────────────────
-  Future<Map<String, dynamic>> fetchDashboardStats() async {
-    final url = await baseUrl;
-    final response = await http
-        .get(Uri.parse('$url/dashboard'))
-        .timeout(const Duration(seconds: 10));
-    if (response.statusCode == 200) {
-      return json.decode(response.body) as Map<String, dynamic>;
-    } else {
-      throw Exception('Failed to load dashboard stats');
+  Future<Map<String, dynamic>> fetchDashboardStats({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _dashboardCache != null &&
+        _isCacheValid(_dashboardCacheTime)) {
+      return _dashboardCache!;
     }
+    final response = await _get('/dashboard');
+    if (response.statusCode == 200) {
+      _dashboardCache = json.decode(response.body) as Map<String, dynamic>;
+      _dashboardCacheTime = DateTime.now();
+      return _dashboardCache!;
+    }
+    throw Exception('Failed to load dashboard stats (${response.statusCode})');
+  }
+
+  /// Load menu and settings in parallel for initial startup optimisation.
+  Future<(List<MenuItem>, Map<String, dynamic>)> fetchInitialData() async {
+    final results = await Future.wait([fetchMenuItems(), fetchSettings()]);
+    return (results[0] as List<MenuItem>, results[1] as Map<String, dynamic>);
   }
 
   // ─── Create Order ──────────────────────────────────────────────────────────
   Future<Order> createOrder(Map<String, dynamic> orderData) async {
-    final url = await baseUrl;
-    final response = await http
-        .post(
-          Uri.parse('$url/orders'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode(orderData),
-        )
-        .timeout(const Duration(seconds: 10));
-
+    final response = await _post('/orders', orderData);
     if (response.statusCode == 200 || response.statusCode == 201) {
+      invalidateDashboardCache();
       return Order.fromJson(json.decode(response.body));
-    } else {
-      throw Exception('Failed to place order');
     }
+    throw Exception('Failed to place order (${response.statusCode})');
   }
 
   // ─── Update Order Status ───────────────────────────────────────────────────
@@ -119,7 +144,6 @@ class ApiService {
     String? customerName,
     String? customerPhone,
   }) async {
-    final url = await baseUrl;
     final Map<String, dynamic> reqBody = {'status': status};
     if (paymentMethod != null) reqBody['paymentMethod'] = paymentMethod;
     if (customerName != null && customerName.isNotEmpty) {
@@ -128,73 +152,62 @@ class ApiService {
     if (customerPhone != null && customerPhone.isNotEmpty) {
       reqBody['customerPhone'] = customerPhone;
     }
-
-    final response = await http
-        .put(
-          Uri.parse('$url/orders/$orderId'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode(reqBody),
-        )
-        .timeout(const Duration(seconds: 10));
-
+    final response = await _put('/orders/$orderId', reqBody);
     if (response.statusCode != 200) {
-      throw Exception('Failed to update order status');
+      throw Exception('Failed to update order (${response.statusCode})');
     }
+    invalidateDashboardCache();
   }
 
   // ─── Menu CRUD ─────────────────────────────────────────────────────────────
   Future<void> createMenuItem(Map<String, dynamic> itemData) async {
-    final url = await baseUrl;
-    final response = await http
-        .post(
-          Uri.parse('$url/menu'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode(itemData),
-        )
-        .timeout(const Duration(seconds: 10));
+    final response = await _post('/menu', itemData);
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Failed to create menu item');
+      throw Exception('Failed to create menu item (${response.statusCode})');
     }
     invalidateMenuCache();
   }
 
   Future<void> updateMenuItem(int id, Map<String, dynamic> itemData) async {
-    final url = await baseUrl;
-    final response = await http.put(
-      Uri.parse('$url/menu/$id'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(itemData),
-    );
+    final response = await _put('/menu/$id', itemData);
     if (response.statusCode != 200) {
-      throw Exception('Failed to update menu item');
+      throw Exception('Failed to update menu item (${response.statusCode})');
     }
     invalidateMenuCache();
   }
 
   Future<void> updateSettings(Map<String, dynamic> settingsData) async {
-    final url = await baseUrl;
-    final response = await http
-        .put(
-          Uri.parse('$url/settings'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode(settingsData),
-        )
-        .timeout(const Duration(seconds: 10));
-
+    final response = await _put('/settings', settingsData);
     if (response.statusCode != 200) {
-      throw Exception('Failed to update settings');
+      throw Exception('Failed to update settings (${response.statusCode})');
     }
     invalidateSettingsCache();
   }
 
   Future<void> deleteMenuItem(int id) async {
-    final url = await baseUrl;
-    final response = await http
-        .delete(Uri.parse('$url/menu/$id'))
-        .timeout(const Duration(seconds: 10));
+    final response = await _delete('/menu/$id');
     if (response.statusCode != 200) {
-      throw Exception('Failed to delete menu item');
+      throw Exception('Failed to delete menu item (${response.statusCode})');
     }
     invalidateMenuCache();
+  }
+
+  // ─── Tables ────────────────────────────────────────────────────────────────
+  Future<List<dynamic>> fetchTables() async {
+    final response = await _get('/tables');
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as List<dynamic>;
+    }
+    throw Exception('Failed to load tables (${response.statusCode})');
+  }
+
+  // ─── KDS pending orders ────────────────────────────────────────────────────
+  Future<List<Order>> fetchPendingOrders() async {
+    final response = await _get('/orders?status=PENDING');
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((j) => Order.fromJson(j)).toList();
+    }
+    throw Exception('Failed to load pending orders (${response.statusCode})');
   }
 }

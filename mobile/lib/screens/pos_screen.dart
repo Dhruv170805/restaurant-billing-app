@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import '../models/order.dart';
@@ -8,6 +9,7 @@ import '../utils/pdf_generator.dart';
 import '../services/api_service.dart';
 import '../models/menu_item.dart';
 import '../providers/pos_provider.dart';
+import '../utils/app_colors.dart';
 
 class POSScreen extends StatefulWidget {
   final int tableNumber;
@@ -133,47 +135,13 @@ class _POSScreenState extends State<POSScreen> {
       final newOrder = await api.createOrder(orderData);
       if (!mounted) return;
       pos.clearCart();
+      HapticFeedback.mediumImpact();
 
       if (context.mounted) {
-        Navigator.of(context).pop(); // Close bottom sheet if open
+        Navigator.of(context).pop(); // Close cart bottom sheet if open
       }
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: Text(
-            widget.orderId != null ? 'Items Added' : 'Order Placed! 🎉',
-          ),
-          content: Text(
-            widget.orderId != null
-                ? 'Items added to Order #${newOrder.id}.'
-                : 'Order #${newOrder.id} for Table ${widget.tableNumber}.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-              child: const Text('Done'),
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.print, size: 16),
-              label: const Text('KOT'),
-              onPressed: () => _nativePrintKot(newOrder, pos.settings),
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.receipt, size: 16),
-              label: const Text('Bill'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF30D158),
-              ),
-              onPressed: () => _nativePrintBill(newOrder, pos.settings),
-            ),
-          ],
-        ),
-      );
+      _showSuccessOverlay(newOrder, pos);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -184,7 +152,175 @@ class _POSScreenState extends State<POSScreen> {
     }
   }
 
-  // ─── Portrait: Cart Bottom Sheet ──────────────────────────────────────────
+  // ─── Payment Success Overlay ────────────────────────────────────────────────
+  void _showSuccessOverlay(Order newOrder, PosProvider pos) {
+    if (!mounted) return;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      transitionDuration: const Duration(milliseconds: 400),
+      transitionBuilder: (ctx, anim, _, child) {
+        return FadeTransition(
+          opacity: anim,
+          child: ScaleTransition(
+            scale: Tween(
+              begin: 0.85,
+              end: 1.0,
+            ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutBack)),
+            child: child,
+          ),
+        );
+      },
+      pageBuilder: (ctx, anim1, anim2) {
+        final currency = pos.settings['currencySymbol'] ?? '₹';
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Material(
+            color: Colors.transparent,
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: const Color(0xF00A0A0F),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: const Color(0x25FFFFFF)),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x66000000), blurRadius: 40),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Animated checkmark
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.elasticOut,
+                      builder: (context, val, _) => Transform.scale(
+                        scale: val,
+                        child: Container(
+                          width: 86,
+                          height: 86,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [AppColors.green, AppColors.greenDark],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF22C55E,
+                                ).withValues(alpha: 0.4),
+                                blurRadius: 24,
+                                spreadRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 46,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      widget.orderId != null ? 'Items Added!' : 'Order Placed!',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Order #${newOrder.id} · Table ${widget.tableNumber}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Total amount pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.orange, AppColors.red],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        '$currency${newOrder.total.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _PosActionBtn(
+                            label: 'Print KOT',
+                            icon: Icons.receipt_outlined,
+                            color: Colors.white,
+                            onTap: () =>
+                                _nativePrintKot(newOrder, pos.settings),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _PosActionBtn(
+                            label: 'Print Bill',
+                            icon: Icons.print_rounded,
+                            color: AppColors.green,
+                            onTap: () =>
+                                _nativePrintBill(newOrder, pos.settings),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          if (mounted) Navigator.of(context).pop();
+                        },
+                        child: Text(
+                          'Done',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ─── Portrait: Cart Bottom Sheet ────────────────────────────────────────────
   void _showCartSheet(PosProvider pos) {
     showModalBottomSheet(
       context: context,
@@ -283,7 +419,7 @@ class _POSScreenState extends State<POSScreen> {
                         ),
                       ),
                       selected: isSelected,
-                      selectedColor: const Color(0xFFFF6B00),
+                      selectedColor: AppColors.orangeAlt,
                       backgroundColor: const Color(0x22FFFFFF),
                       checkmarkColor: Colors.white,
                       shape: RoundedRectangleBorder(
@@ -378,7 +514,7 @@ class _POSScreenState extends State<POSScreen> {
                                 ),
                               ),
                               selected: isSelected,
-                              selectedColor: const Color(0xFFFF6B00),
+                              selectedColor: AppColors.orangeAlt,
                               backgroundColor: const Color(0x22FFFFFF),
                               checkmarkColor: Colors.white,
                               shape: RoundedRectangleBorder(
@@ -432,9 +568,9 @@ class _POSScreenState extends State<POSScreen> {
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0x18FFFFFF),
+              color: AppColors.borderSubtle,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0x28FFFFFF)),
+              border: Border.all(color: AppColors.borderMid),
             ),
             padding: const EdgeInsets.all(8),
             child: Column(
@@ -464,7 +600,7 @@ class _POSScreenState extends State<POSScreen> {
                   ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFFFF6B00), Color(0xFFE61C24)],
+                      colors: [AppColors.orangeAlt, AppColors.redAlt],
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -520,7 +656,7 @@ class _FloatingCartBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFFF6B00), Color(0xFFE61C24)],
+                  colors: [AppColors.orangeAlt, AppColors.redAlt],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: const [
@@ -658,7 +794,7 @@ class _CartBottomSheet extends StatelessWidget {
                           child: Text(
                             '${pos.cart.length}',
                             style: const TextStyle(
-                              color: Color(0xFFFF6B00),
+                              color: AppColors.orangeAlt,
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                             ),
@@ -752,7 +888,7 @@ class _CartItemTile extends StatelessWidget {
                   Text(
                     '$currency${cartItem.total.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      color: Color(0xFFFF6B00),
+                      color: AppColors.orangeAlt,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
@@ -766,7 +902,7 @@ class _CartItemTile extends StatelessWidget {
               children: [
                 _stepperBtn(
                   icon: Icons.remove,
-                  color: const Color(0xFFFF3B30),
+                  color: AppColors.dangerAlt,
                   onTap: () => pos.updateQuantity(cartItem.menuItem, -1),
                 ),
                 Padding(
@@ -781,7 +917,7 @@ class _CartItemTile extends StatelessWidget {
                 ),
                 _stepperBtn(
                   icon: Icons.add,
-                  color: const Color(0xFF30D158),
+                  color: AppColors.greenAlt,
                   onTap: () => pos.updateQuantity(cartItem.menuItem, 1),
                 ),
               ],
@@ -847,7 +983,7 @@ class _CartTotals extends StatelessWidget {
                 Text(
                   pos.settings['taxLabel'] ?? 'Tax',
                   style: const TextStyle(
-                    color: Color(0xFF888888),
+                    color: AppColors.muted,
                     fontSize: 13,
                   ),
                 ),
@@ -864,7 +1000,7 @@ class _CartTotals extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFF6B00), Color(0xFFE61C24)],
+                colors: [AppColors.orangeAlt, AppColors.redAlt],
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: const [
@@ -935,7 +1071,7 @@ class _LandscapeCartPanel extends StatelessWidget {
           child: Container(
             decoration: const BoxDecoration(
               color: Color(0x55000000),
-              border: Border(left: BorderSide(color: Color(0x28FFFFFF))),
+              border: Border(left: BorderSide(color: AppColors.borderMid)),
             ),
             child: Consumer<PosProvider>(
               builder: (context, pos, _) {
@@ -1013,6 +1149,52 @@ class _LandscapeCartPanel extends StatelessWidget {
               },
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Action button for success overlay ───────────────────────────────────────
+
+class _PosActionBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _PosActionBtn({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ),
       ),
     );

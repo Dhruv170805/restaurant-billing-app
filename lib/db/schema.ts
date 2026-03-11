@@ -77,8 +77,13 @@ export interface DbDashboardStats {
   todayOrders: number
   monthlyOrders: number
   pendingOrders: number
+  yesterdayRevenue: number
+  avgOrderValue: number
+  topItems: { name: string; qty: number; revenue: number }[]
+  weeklyAvg: number[] // 7-element [Sun..Sat] avg revenue per day
   recentOrders: DbOrder[]
   unpaidOrders: DbOrder[]
+  hourlyRevenue?: number[] // 24-element array indexed by hour [0..23]
 }
 
 export interface DbTableInfo {

@@ -61,11 +61,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .slice(0, 19)
     .replace('T', ' ')
 
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+  const yesterdayStart = yesterday.toISOString().slice(0, 19).replace('T', ' ')
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     .toISOString()
     .slice(0, 19)
     .replace('T', ' ')
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 19)
+    .replace('T', ' ')
 
+  // ── Main aggregate ──────────────────────────────────────────────────────────
   const statsArray = await db
     .collection<DbOrder>('orders')
     .aggregate([
@@ -139,6 +146,26 @@ export async function getDashboardStats(): Promise<DashboardStats> {
               ],
             },
           },
+          yesterdayRevenue: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $gte: ['$createdAt', yesterdayStart] },
+                    { $lt: ['$createdAt', todayStart] },
+                    { $eq: ['$status', 'PAID'] },
+                  ],
+                },
+                '$total',
+                0,
+              ],
+            },
+          },
+          avgOrderValue: {
+            $avg: {
+              $cond: [{ $eq: ['$status', 'PAID'] }, '$total', null],
+            },
+          },
         },
       },
     ])
@@ -153,8 +180,47 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     unpaidRevenue: 0,
     todayOrders: 0,
     pendingOrders: 0,
+    yesterdayRevenue: 0,
+    avgOrderValue: 0,
   }
 
+  // ── Top selling items (7-day window) ───────────────────────────────────────
+  const topItemsPipeline = await db
+    .collection<DbOrder>('orders')
+    .aggregate([
+      { $match: { status: 'PAID', createdAt: { $gte: sevenDaysAgo } } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.name',
+          qty: { $sum: '$items.quantity' },
+          revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+        },
+      },
+      { $sort: { qty: -1 } },
+      { $limit: 5 },
+      { $project: { _id: 0, name: '$_id', qty: 1, revenue: 1 } },
+    ])
+    .toArray()
+
+  // ── Weekly revenue by day-of-week (for AI prediction) ─────────────────────
+  const weeklyOrders = await db
+    .collection<DbOrder>('orders')
+    .find({ status: 'PAID', createdAt: { $gte: sevenDaysAgo } })
+    .project({ total: 1, createdAt: 1 })
+    .toArray()
+
+  // Build 7-element array [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+  const weeklyTotals = [0, 0, 0, 0, 0, 0, 0]
+  const weeklyCounts = [0, 0, 0, 0, 0, 0, 0]
+  for (const o of weeklyOrders) {
+    const day = new Date(o.createdAt).getDay()
+    weeklyTotals[day] += o.total
+    weeklyCounts[day]++
+  }
+  const weeklyAvg = weeklyTotals.map((t, i) => (weeklyCounts[i] > 0 ? Math.round(t / weeklyCounts[i]) : 0))
+
+  // ── Recent & unpaid orders ─────────────────────────────────────────────────
   const recentOrders = await db
     .collection<DbOrder>('orders')
     .find({ createdAt: { $gte: todayStart } })
@@ -177,6 +243,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     todayOrders: stats.todayOrders,
     monthlyOrders: stats.monthlyOrders,
     pendingOrders: stats.pendingOrders,
+    yesterdayRevenue: stats.yesterdayRevenue ?? 0,
+    avgOrderValue: Math.round(stats.avgOrderValue ?? 0),
+    topItems: topItemsPipeline as { name: string; qty: number; revenue: number }[],
+    weeklyAvg,
     recentOrders: recentOrders.map(
       (doc: DbOrder) => ({ ...doc, id: doc._id }) as unknown as DbOrder
     ),

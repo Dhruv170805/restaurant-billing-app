@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../models/order.dart';
 import '../providers/pos_provider.dart';
 import 'pos_screen.dart';
+import '../utils/app_colors.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -169,7 +170,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 Text(
                                   'Table ${order.tableNumber}',
                                   style: const TextStyle(
-                                    color: Color(0xFF888888),
+                                    color: AppColors.muted,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -241,7 +242,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         ),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFFFF6B00), Color(0xFFE61C24)],
+                            colors: [AppColors.orangeAlt, AppColors.redAlt],
                           ),
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -279,7 +280,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   child: _ActionButton(
                                     label: 'Add Items',
                                     icon: Icons.add_circle_outline,
-                                    color: const Color(0xFF0A84FF),
+                                    color: AppColors.blue,
                                     onTap: () {
                                       Navigator.pop(context);
                                       _addItemsToOrder(order);
@@ -301,7 +302,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 child: _ActionButton(
                                   label: 'Bill',
                                   icon: Icons.print_rounded,
-                                  color: const Color(0xFF30D158),
+                                  color: AppColors.greenAlt,
                                   onTap: () => _printBill(order),
                                 ),
                               ),
@@ -520,16 +521,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final Color statusColor;
     switch (order.status) {
       case 'PENDING':
-        statusColor = const Color(0xFFFF9500);
+        statusColor = AppColors.amber;
         break;
       case 'PAID':
-        statusColor = const Color(0xFF30D158);
+        statusColor = AppColors.greenAlt;
         break;
       case 'UNPAID':
-        statusColor = const Color(0xFFFFCC00);
+        statusColor = AppColors.amberAlt;
         break;
       case 'CANCELLED':
-        statusColor = const Color(0xFFFF3B30);
+        statusColor = AppColors.dangerAlt;
         break;
       default:
         statusColor = Colors.grey;
@@ -582,14 +583,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     Text(
                       'Table ${order.tableNumber}',
                       style: const TextStyle(
-                        color: Color(0xFF888888),
+                        color: AppColors.muted,
                         fontSize: 13,
                       ),
                     ),
                     Text(
                       dateStr,
                       style: const TextStyle(
-                        color: Color(0xFF555555),
+                        color: AppColors.subtle,
                         fontSize: 12,
                       ),
                     ),
@@ -671,16 +672,16 @@ class _StatusBadge extends StatelessWidget {
     final Color color;
     switch (status) {
       case 'PENDING':
-        color = const Color(0xFFFF9500);
+        color = AppColors.amber;
         break;
       case 'PAID':
-        color = const Color(0xFF30D158);
+        color = AppColors.greenAlt;
         break;
       case 'UNPAID':
-        color = const Color(0xFFFFCC00);
+        color = AppColors.amberAlt;
         break;
       case 'CANCELLED':
-        color = const Color(0xFFFF3B30);
+        color = AppColors.dangerAlt;
         break;
       default:
         color = Colors.grey;
