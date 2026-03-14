@@ -36,8 +36,24 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSettingsCompat()
+  const theme = settings.app?.theme || 'system'
+
   return (
-    <html lang="en">
+    <html lang="en" data-theme={theme === 'system' ? undefined : theme} suppressHydrationWarning>
+      <head>
+        {theme === 'system' && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  document.documentElement.setAttribute('data-theme', theme);
+                })();
+              `,
+            }}
+          />
+        )}
+      </head>
       <body className={inter.className}>
         <nav className="navbar">
           <Link

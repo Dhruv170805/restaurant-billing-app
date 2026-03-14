@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/pdf_generator.dart';
 import '../services/api_service.dart';
 import '../models/order.dart';
 import '../providers/pos_provider.dart';
 import 'pos_screen.dart';
+import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -21,15 +24,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
   final ApiService api = ApiService();
   bool isLoading = true;
   List<Order> orders = [];
+  StreamSubscription? _socketSub;
 
   @override
   void initState() {
     super.initState();
     loadOrders();
+    
+    // Listen for real-time order updates
+    _socketSub = SocketService().eventStream.listen((event) {
+      if (event['event'] == SocketEvent.orderUpdated) {
+        if (mounted) loadOrders(silent: true);
+      }
+    });
   }
 
-  Future<void> loadOrders() async {
-    setState(() => isLoading = true);
+  @override
+  void dispose() {
+    _socketSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> loadOrders({bool silent = false}) async {
+    if (!silent) setState(() => isLoading = true);
     try {
       final fetchedOrders = await api.fetchOrders();
       if (!mounted) return;
@@ -45,9 +62,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load orders: $e')));
+      if (!silent) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load orders: $e')));
+      }
     }
   }
 
@@ -110,6 +129,37 @@ class _OrdersScreenState extends State<OrdersScreen> {
             POSScreen(tableNumber: order.tableNumber ?? 1, orderId: order.id),
       ),
     ).then((_) => loadOrders());
+  }
+
+  Future<void> _sendWhatsAppReminder(Order order) async {
+    final phone = order.customerPhone?.replaceAll(RegExp(r'\D'), '');
+    if (phone == null || phone.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No phone number found')));
+      return;
+    }
+
+    final settings = Provider.of<PosProvider>(context, listen: false).settings;
+    final restaurantName = settings['restaurantName'] ?? 'our restaurant';
+    final currency = settings['currencySymbol'] ?? '₹';
+    final message =
+        "Hello ${order.customerName ?? 'there'},\n\nReminder from $restaurantName: your bill of $currency${order.total.toStringAsFixed(2)} for Order #${order.id} is unpaid. Please settle at your earliest convenience. Thank you!";
+
+    final url = Uri.parse("https://wa.me/$phone?text=${Uri.encodeComponent(message)}");
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch $url';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('WhatsApp failed: $e')));
+      }
+    }
   }
 
   void _showOrderDetails(Order order, String currency) {
@@ -306,6 +356,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   onTap: () => _printBill(order),
                                 ),
                               ),
+                              if (order.status == 'UNPAID') ...[
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _ActionButton(
+                                    label: 'Reminder',
+                                    icon: Icons.chat_bubble_outline_rounded,
+                                    color: const Color(0xFF25D366),
+                                    onTap: () => _sendWhatsAppReminder(order),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -625,6 +686,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             _showCheckoutDialog(order, currency);
                           } else if (status == 'ADD_ITEMS') {
                             _addItemsToOrder(order);
+                          } else if (status == 'WHATSAPP') {
+                            _sendWhatsAppReminder(order);
                           } else if (status != order.status) {
                             updateStatus(order, status);
                           }

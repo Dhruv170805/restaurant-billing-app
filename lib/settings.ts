@@ -32,6 +32,10 @@ export async function getSettingsCompat() {
     tables: {
       count: s.tableCount,
     },
+    app: {
+      theme: s.theme,
+      billGreeting: s.billGreeting,
+    },
   }
 }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:fl_chart/fl_chart.dart';
@@ -9,6 +10,7 @@ import '../services/api_service.dart';
 import '../providers/pos_provider.dart';
 import '../utils/pdf_generator.dart';
 import '../models/order.dart';
+import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
 
 class SalesDashboardScreen extends StatefulWidget {
@@ -22,15 +24,29 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
   final ApiService api = ApiService();
   bool isLoading = true;
   Map<String, dynamic> stats = {};
+  StreamSubscription? _socketSub;
 
   @override
   void initState() {
     super.initState();
     loadStats();
+    
+    // Listen for real-time sales updates
+    _socketSub = SocketService().eventStream.listen((event) {
+      if (event['event'] == SocketEvent.orderUpdated) {
+        if (mounted) loadStats(silent: true);
+      }
+    });
   }
 
-  Future<void> loadStats() async {
-    setState(() => isLoading = true);
+  @override
+  void dispose() {
+    _socketSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> loadStats({bool silent = false}) async {
+    if (!silent) setState(() => isLoading = true);
     try {
       final data = await api.fetchDashboardStats();
       if (!mounted) return;
@@ -41,9 +57,11 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load sales stats: $e')));
+      if (!silent) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load sales stats: $e')));
+      }
     }
   }
 

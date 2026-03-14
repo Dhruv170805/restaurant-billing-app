@@ -61,8 +61,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .slice(0, 19)
     .replace('T', ' ')
 
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
-  const yesterdayStart = yesterday.toISOString().slice(0, 19).replace('T', ' ')
+  const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+    .toISOString()
+    .slice(0, 19)
+    .replace('T', ' ')
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     .toISOString()
     .slice(0, 19)
@@ -72,106 +74,142 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .slice(0, 19)
     .replace('T', ' ')
 
-  // ── Main aggregate ──────────────────────────────────────────────────────────
-  const statsArray = await db
+  const results = await db
     .collection<DbOrder>('orders')
     .aggregate([
-      { $match: { createdAt: { $gte: monthStart } } },
       {
-        $group: {
-          _id: null,
-          monthlyRevenue: {
-            $sum: { $cond: [{ $in: ['$status', ['PAID']] }, '$total', 0] },
-          },
-          monthlyOrders: {
-            $sum: { $cond: [{ $in: ['$status', ['PAID', 'UNPAID']] }, 1, 0] },
-          },
-          todayRevenue: {
-            $sum: {
-              $cond: [
-                { $and: [{ $gte: ['$createdAt', todayStart] }, { $eq: ['$status', 'PAID'] }] },
-                '$total',
-                0,
-              ],
-            },
-          },
-          cashRevenue: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $gte: ['$createdAt', todayStart] },
-                    { $eq: ['$status', 'PAID'] },
-                    { $eq: ['$paymentMethod', 'CASH'] },
-                  ],
+        $facet: {
+          // ── Main stats aggregate ──
+          mainStats: [
+            { $match: { createdAt: { $gte: monthStart } } },
+            {
+              $group: {
+                _id: null,
+                monthlyRevenue: {
+                  $sum: { $cond: [{ $in: ['$status', ['PAID']] }, '$total', 0] },
                 },
-                '$total',
-                0,
-              ],
-            },
-          },
-          onlineRevenue: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $gte: ['$createdAt', todayStart] },
-                    { $eq: ['$status', 'PAID'] },
-                    { $eq: ['$paymentMethod', 'ONLINE'] },
-                  ],
+                monthlyOrders: {
+                  $sum: { $cond: [{ $in: ['$status', ['PAID', 'UNPAID']] }, 1, 0] },
                 },
-                '$total',
-                0,
-              ],
-            },
-          },
-          unpaidRevenue: {
-            $sum: {
-              $cond: [
-                { $and: [{ $gte: ['$createdAt', todayStart] }, { $eq: ['$status', 'UNPAID'] }] },
-                '$total',
-                0,
-              ],
-            },
-          },
-          todayOrders: {
-            $sum: { $cond: [{ $gte: ['$createdAt', todayStart] }, 1, 0] },
-          },
-          pendingOrders: {
-            $sum: {
-              $cond: [
-                { $and: [{ $gte: ['$createdAt', todayStart] }, { $eq: ['$status', 'PENDING'] }] },
-                1,
-                0,
-              ],
-            },
-          },
-          yesterdayRevenue: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $gte: ['$createdAt', yesterdayStart] },
-                    { $lt: ['$createdAt', todayStart] },
-                    { $eq: ['$status', 'PAID'] },
-                  ],
+                todayRevenue: {
+                  $sum: {
+                    $cond: [
+                      { $and: [{ $gte: ['$createdAt', todayStart] }, { $eq: ['$status', 'PAID'] }] },
+                      '$total',
+                      0,
+                    ],
+                  },
                 },
-                '$total',
-                0,
-              ],
+                cashRevenue: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$createdAt', todayStart] },
+                          { $eq: ['$status', 'PAID'] },
+                          { $eq: ['$paymentMethod', 'CASH'] },
+                        ],
+                      },
+                      '$total',
+                      0,
+                    ],
+                  },
+                },
+                onlineRevenue: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$createdAt', todayStart] },
+                          { $eq: ['$status', 'PAID'] },
+                          { $eq: ['$paymentMethod', 'ONLINE'] },
+                        ],
+                      },
+                      '$total',
+                      0,
+                    ],
+                  },
+                },
+                unpaidRevenue: {
+                  $sum: {
+                    $cond: [
+                      { $and: [{ $gte: ['$createdAt', todayStart] }, { $eq: ['$status', 'UNPAID'] }] },
+                      '$total',
+                      0,
+                    ],
+                  },
+                },
+                todayOrders: {
+                  $sum: { $cond: [{ $gte: ['$createdAt', todayStart] }, 1, 0] },
+                },
+                pendingOrders: {
+                  $sum: {
+                    $cond: [
+                      { $and: [{ $gte: ['$createdAt', todayStart] }, { $eq: ['$status', 'PENDING'] }] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                yesterdayRevenue: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$createdAt', yesterdayStart] },
+                          { $lt: ['$createdAt', todayStart] },
+                          { $eq: ['$status', 'PAID'] },
+                        ],
+                      },
+                      '$total',
+                      0,
+                    ],
+                  },
+                },
+                avgOrderValue: {
+                  $avg: { $cond: [{ $eq: ['$status', 'PAID'] }, '$total', null] },
+                },
+              },
             },
-          },
-          avgOrderValue: {
-            $avg: {
-              $cond: [{ $eq: ['$status', 'PAID'] }, '$total', null],
+          ],
+          // ── Top selling items (7-day window) ──
+          topItems: [
+            { $match: { status: 'PAID', createdAt: { $gte: sevenDaysAgo } } },
+            { $unwind: '$items' },
+            {
+              $group: {
+                _id: '$items.name',
+                qty: { $sum: '$items.quantity' },
+                revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+              },
             },
-          },
+            { $sort: { qty: -1 } },
+            { $limit: 5 },
+            { $project: { _id: 0, name: '$_id', qty: 1, revenue: 1 } },
+          ],
+          // ── Recent orders (Today) ──
+          recentOrders: [
+            { $match: { createdAt: { $gte: todayStart } } },
+            { $sort: { createdAt: -1 } },
+            { $limit: 10 },
+          ],
+          // ── All unpaid orders ──
+          unpaidOrders: [
+            { $match: { status: 'UNPAID' } },
+            { $sort: { createdAt: -1 } },
+          ],
+          // ── Weekly totals (for AI) ──
+          weeklyData: [
+            { $match: { status: 'PAID', createdAt: { $gte: sevenDaysAgo } } },
+            { $project: { total: 1, createdAt: 1 } },
+          ],
         },
       },
     ])
     .toArray()
 
-  const stats = statsArray[0] || {
+  const data = results[0]
+  const stats = data.mainStats[0] || {
     monthlyRevenue: 0,
     monthlyOrders: 0,
     todayRevenue: 0,
@@ -184,55 +222,15 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     avgOrderValue: 0,
   }
 
-  // ── Top selling items (7-day window) ───────────────────────────────────────
-  const topItemsPipeline = await db
-    .collection<DbOrder>('orders')
-    .aggregate([
-      { $match: { status: 'PAID', createdAt: { $gte: sevenDaysAgo } } },
-      { $unwind: '$items' },
-      {
-        $group: {
-          _id: '$items.name',
-          qty: { $sum: '$items.quantity' },
-          revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
-        },
-      },
-      { $sort: { qty: -1 } },
-      { $limit: 5 },
-      { $project: { _id: 0, name: '$_id', qty: 1, revenue: 1 } },
-    ])
-    .toArray()
-
-  // ── Weekly revenue by day-of-week (for AI prediction) ─────────────────────
-  const weeklyOrders = await db
-    .collection<DbOrder>('orders')
-    .find({ status: 'PAID', createdAt: { $gte: sevenDaysAgo } })
-    .project({ total: 1, createdAt: 1 })
-    .toArray()
-
-  // Build 7-element array [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+  // Calculate weekly avg from weeklyData
   const weeklyTotals = [0, 0, 0, 0, 0, 0, 0]
   const weeklyCounts = [0, 0, 0, 0, 0, 0, 0]
-  for (const o of weeklyOrders) {
+  for (const o of data.weeklyData) {
     const day = new Date(o.createdAt).getDay()
     weeklyTotals[day] += o.total
     weeklyCounts[day]++
   }
   const weeklyAvg = weeklyTotals.map((t, i) => (weeklyCounts[i] > 0 ? Math.round(t / weeklyCounts[i]) : 0))
-
-  // ── Recent & unpaid orders ─────────────────────────────────────────────────
-  const recentOrders = await db
-    .collection<DbOrder>('orders')
-    .find({ createdAt: { $gte: todayStart } })
-    .sort({ createdAt: -1 })
-    .limit(10)
-    .toArray()
-
-  const unpaidOrders = await db
-    .collection<DbOrder>('orders')
-    .find({ status: 'UNPAID' })
-    .sort({ createdAt: -1 })
-    .toArray()
 
   return {
     todayRevenue: stats.todayRevenue,
@@ -245,13 +243,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     pendingOrders: stats.pendingOrders,
     yesterdayRevenue: stats.yesterdayRevenue ?? 0,
     avgOrderValue: Math.round(stats.avgOrderValue ?? 0),
-    topItems: topItemsPipeline as { name: string; qty: number; revenue: number }[],
+    topItems: data.topItems as { name: string; qty: number; revenue: number }[],
     weeklyAvg,
-    recentOrders: recentOrders.map(
-      (doc: DbOrder) => ({ ...doc, id: doc._id }) as unknown as DbOrder
-    ),
-    unpaidOrders: unpaidOrders.map(
-      (doc: DbOrder) => ({ ...doc, id: doc._id }) as unknown as DbOrder
-    ),
+    recentOrders: data.recentOrders.map((d: any) => ({ ...d, id: d._id })),
+    unpaidOrders: data.unpaidOrders.map((d: any) => ({ ...d, id: d._id })),
   }
 }

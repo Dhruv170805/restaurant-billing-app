@@ -1,18 +1,39 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/menu_item.dart';
 import '../models/order.dart';
-import '../utils/app_colors.dart';
+import '../utils/app_durations.dart';
 
 class ApiService {
-  static const String _baseUrl =
-      'https://restaurant-billing-app-self.vercel.app';
-  static const String _apiBase = '$_baseUrl/api';
+  // ─── Singleton Pattern ───────────────────────────────────────────────────
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
 
-  /// Sync getter — no need for async since the URL is constant.
-  String get baseUrl => _apiBase;
-  String get webUrl => _baseUrl;
+  final http.Client _client = http.Client();
+
+  // Dynamic configuration defaults
+  static const String _defaultIp = '10.0.2.2'; // Standard AVD localhost bridge
+  static const String _defaultPort = '3000';
+
+  Future<String> get baseUrl async {
+    final prefs = await SharedPreferences.getInstance();
+    final ip = prefs.getString('server_ip') ?? _defaultIp;
+    return 'http://$ip:$_defaultPort/api';
+  }
+
+  Future<String> get webUrl async {
+    final prefs = await SharedPreferences.getInstance();
+    final ip = prefs.getString('server_ip') ?? _defaultIp;
+    return 'http://$ip:$_defaultPort';
+  }
+
+  Future<void> setServerIp(String ip) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('server_ip', ip);
+    invalidateAll();
+  }
 
   // ─── In-memory cache ──────────────────────────────────────────────────────
   static List<MenuItem>? _menuCache;
@@ -36,28 +57,45 @@ class ApiService {
     _dashboardCache = null;
   }
 
+  /// Close the client when the app is being terminated
+  void dispose() {
+    _client.close();
+  }
+
   // ─── Shared request helper ────────────────────────────────────────────────
-  Future<http.Response> _get(String path) =>
-      http.get(Uri.parse('$baseUrl$path')).timeout(AppDurations.httpTimeout);
+  Future<http.Response> _get(String path) async {
+    final url = await baseUrl;
+    return _client.get(Uri.parse('$url$path')).timeout(AppDurations.httpTimeout);
+  }
 
-  Future<http.Response> _post(String path, Map<String, dynamic> body) => http
-      .post(
-        Uri.parse('$baseUrl$path'),
-        headers: const {'Content-Type': 'application/json'},
-        body: json.encode(body),
-      )
-      .timeout(AppDurations.httpTimeout);
+  Future<http.Response> _post(String path, Map<String, dynamic> body) async {
+    final url = await baseUrl;
+    return _client
+        .post(
+          Uri.parse('$url$path'),
+          headers: const {'Content-Type': 'application/json'},
+          body: json.encode(body),
+        )
+        .timeout(AppDurations.httpTimeout);
+  }
 
-  Future<http.Response> _put(String path, Map<String, dynamic> body) => http
-      .put(
-        Uri.parse('$baseUrl$path'),
-        headers: const {'Content-Type': 'application/json'},
-        body: json.encode(body),
-      )
-      .timeout(AppDurations.httpTimeout);
+  Future<http.Response> _put(String path, Map<String, dynamic> body) async {
+    final url = await baseUrl;
+    return _client
+        .put(
+          Uri.parse('$url$path'),
+          headers: const {'Content-Type': 'application/json'},
+          body: json.encode(body),
+        )
+        .timeout(AppDurations.httpTimeout);
+  }
 
-  Future<http.Response> _delete(String path) =>
-      http.delete(Uri.parse('$baseUrl$path')).timeout(AppDurations.httpTimeout);
+  Future<http.Response> _delete(String path) async {
+    final url = await baseUrl;
+    return _client
+        .delete(Uri.parse('$url$path'))
+        .timeout(AppDurations.httpTimeout);
+  }
 
   // ─── Menu ──────────────────────────────────────────────────────────────────
   Future<List<MenuItem>> fetchMenuItems({bool forceRefresh = false}) async {
@@ -209,5 +247,14 @@ class ApiService {
       return data.map((j) => Order.fromJson(j)).toList();
     }
     throw Exception('Failed to load pending orders (${response.statusCode})');
+  }
+
+  // ─── Mark KOT Printed ──────────────────────────────────────────────────────
+  Future<Order> markKOTPrinted(int orderId) async {
+    final response = await _put('/orders/$orderId/kot', {});
+    if (response.statusCode == 200) {
+      return Order.fromJson(json.decode(response.body));
+    }
+    throw Exception('Failed to mark KOT printed (${response.statusCode})');
   }
 }

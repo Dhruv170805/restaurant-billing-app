@@ -60,8 +60,27 @@ class _POSScreenState extends State<POSScreen> {
     Map<String, dynamic> settings,
   ) async {
     try {
+      final itemsToPrint =
+          order.items.where((i) => i.quantity > i.printedQuantity).toList();
+
+      if (itemsToPrint.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No new items to print')));
+        }
+        return;
+      }
+
       final doc = await PdfGenerator.generateKOT(order, settings);
-      await Printing.layoutPdf(onLayout: (format) => doc.save());
+      final bool printJobStarted = await Printing.layoutPdf(
+        onLayout: (format) => doc.save(),
+      );
+
+      if (printJobStarted) {
+        // Mark as printed on server
+        await api.markKOTPrinted(order.id);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -447,25 +466,33 @@ class _POSScreenState extends State<POSScreen> {
                           ),
                       itemCount: filteredItems.length,
                       itemBuilder: (context, index) =>
-                          _menuCard(filteredItems[index], currencySymbol),
+                          RepaintBoundary(
+                            child: _menuCard(filteredItems[index], currencySymbol),
+                          ),
                     ),
             ),
           ],
         ),
 
-        // Floating cart summary bar at bottom
         Positioned(
           left: 0,
           right: 0,
           bottom: 0,
-          child: Consumer<PosProvider>(
-            builder: (context, pos, _) {
-              if (pos.cart.isEmpty) return const SizedBox.shrink();
-              return _FloatingCartBar(
-                pos: pos,
-                currencySymbol: currencySymbol,
-                onTap: () => _showCartSheet(pos),
-                isCheckingOut: isCheckingOut,
+          child: Selector<PosProvider, ({int count, double total})>(
+            selector: (_, pos) => (
+              count: pos.cart.fold<int>(0, (sum, i) => sum + i.quantity),
+              total: pos.total,
+            ),
+            builder: (context, cartSummary, _) {
+              if (cartSummary.count == 0) return const SizedBox.shrink();
+              return RepaintBoundary(
+                child: _FloatingCartBar(
+                  itemCount: cartSummary.count,
+                  total: cartSummary.total,
+                  currencySymbol: currencySymbol,
+                  onTap: () => _showCartSheet(Provider.of<PosProvider>(context, listen: false)),
+                  isCheckingOut: isCheckingOut,
+                ),
               );
             },
           ),
@@ -542,7 +569,9 @@ class _POSScreenState extends State<POSScreen> {
                             ),
                         itemCount: filteredItems.length,
                         itemBuilder: (context, index) =>
-                            _menuCard(filteredItems[index], currencySymbol),
+                            RepaintBoundary(
+                              child: _menuCard(filteredItems[index], currencySymbol),
+                            ),
                       ),
                     ),
                   ],
@@ -624,13 +653,15 @@ class _POSScreenState extends State<POSScreen> {
 
 // ─── Floating Cart Bar (portrait) ─────────────────────────────────────────────
 class _FloatingCartBar extends StatelessWidget {
-  final PosProvider pos;
+  final int itemCount;
+  final double total;
   final String currencySymbol;
   final VoidCallback onTap;
   final bool isCheckingOut;
 
   const _FloatingCartBar({
-    required this.pos,
+    required this.itemCount,
+    required this.total,
     required this.currencySymbol,
     required this.onTap,
     required this.isCheckingOut,
@@ -638,7 +669,6 @@ class _FloatingCartBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final itemCount = pos.cart.fold<int>(0, (sum, i) => sum + i.quantity);
     return GestureDetector(
       onTap: onTap,
       child: Padding(
@@ -698,7 +728,7 @@ class _FloatingCartBar extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    '$currencySymbol${pos.total.toStringAsFixed(2)}',
+                    '$currencySymbol${total.toStringAsFixed(2)}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -774,70 +804,91 @@ class _CartBottomSheet extends StatelessWidget {
                     child: Row(
                       children: [
                         const Text(
-                          'Cart',
+                          'Cart Items',
                           style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0x33FF6B00),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${pos.cart.length}',
-                            style: const TextStyle(
-                              color: AppColors.orangeAlt,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                        Selector<PosProvider, int>(
+                          selector: (_, p) => p.cart.length,
+                          builder: (context, count, _) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0x33FF6B00),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$count',
+                              style: const TextStyle(
+                                color: AppColors.orangeAlt,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
                         const Spacer(),
-                        if (pos.cart.isNotEmpty)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                            ),
-                            onPressed: () {
-                              pos.clearCart();
-                              Navigator.pop(context);
-                            },
-                          ),
+                        Selector<PosProvider, bool>(
+                          selector: (_, p) => p.cart.isNotEmpty,
+                          builder: (context, isNotEmpty, _) => isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.redAccent,
+                                  ),
+                                  onPressed: () {
+                                    Provider.of<PosProvider>(context, listen: false).clearCart();
+                                    Navigator.pop(context);
+                                  },
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ],
                     ),
                   ),
                   const Divider(height: 1, color: Color(0x22FFFFFF)),
                   // Items
                   Expanded(
-                    child: ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: pos.cart.length,
-                      itemBuilder: (context, index) {
-                        final cartItem = pos.cart[index];
-                        return _CartItemTile(
-                          cartItem: cartItem,
-                          pos: pos,
-                          currency: currency,
-                        );
-                      },
+                    child: Selector<PosProvider, List<CartItem>>(
+                      selector: (_, pos) => pos.cart,
+                      shouldRebuild: (prev, next) => prev != next,
+                      builder: (context, items, _) => ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          return RepaintBoundary(
+                            child: _CartItemTile(
+                              cartItem: items[index],
+                              currency: currency,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   // Totals
-                  _CartTotals(
-                    pos: pos,
-                    currency: currency,
-                    onCheckout: onCheckout,
-                    isCheckingOut: isCheckingOut,
+                  Selector<PosProvider, ({double total, double tax, String taxLabel})>(
+                    selector: (_, pos) => (
+                      total: pos.total,
+                      tax: pos.taxAmount,
+                      taxLabel: pos.settings['taxLabel'] ?? 'Tax',
+                    ),
+                    builder: (context, summary, _) => RepaintBoundary(
+                      child: _CartTotals(
+                        total: summary.total,
+                        taxAmount: summary.tax,
+                        taxLabel: summary.taxLabel,
+                        currency: currency,
+                        onCheckout: onCheckout,
+                        isCheckingOut: isCheckingOut,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -850,13 +901,11 @@ class _CartBottomSheet extends StatelessWidget {
 }
 
 class _CartItemTile extends StatelessWidget {
-  final dynamic cartItem;
-  final PosProvider pos;
+  final CartItem cartItem;
   final String currency;
 
   const _CartItemTile({
     required this.cartItem,
-    required this.pos,
     required this.currency,
   });
 
@@ -903,7 +952,7 @@ class _CartItemTile extends StatelessWidget {
                 _stepperBtn(
                   icon: Icons.remove,
                   color: AppColors.dangerAlt,
-                  onTap: () => pos.updateQuantity(cartItem.menuItem, -1),
+                  onTap: () => Provider.of<PosProvider>(context, listen: false).updateQuantity(cartItem.menuItem, -1),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -918,7 +967,7 @@ class _CartItemTile extends StatelessWidget {
                 _stepperBtn(
                   icon: Icons.add,
                   color: AppColors.greenAlt,
-                  onTap: () => pos.updateQuantity(cartItem.menuItem, 1),
+                  onTap: () => Provider.of<PosProvider>(context, listen: false).updateQuantity(cartItem.menuItem, 1),
                 ),
               ],
             ),
@@ -950,14 +999,18 @@ class _CartItemTile extends StatelessWidget {
 }
 
 class _CartTotals extends StatelessWidget {
-  final PosProvider pos;
+  final double total;
+  final double taxAmount;
+  final String taxLabel;
   final String currency;
   final VoidCallback onCheckout;
   final bool isCheckingOut;
   final bool useSafeArea;
 
   const _CartTotals({
-    required this.pos,
+    required this.total,
+    required this.taxAmount,
+    required this.taxLabel,
     required this.currency,
     required this.onCheckout,
     required this.isCheckingOut,
@@ -976,19 +1029,19 @@ class _CartTotals extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (pos.taxAmount > 0) ...[
+          if (taxAmount > 0) ...[
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  pos.settings['taxLabel'] ?? 'Tax',
+                  taxLabel,
                   style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 13,
                   ),
                 ),
                 Text(
-                  '$currency${pos.taxAmount.toStringAsFixed(2)}',
+                  '$currency${taxAmount.toStringAsFixed(2)}',
                   style: const TextStyle(fontSize: 13),
                 ),
               ],
@@ -1034,7 +1087,7 @@ class _CartTotals extends StatelessWidget {
                           ),
                         ),
                   Text(
-                    '$currency${pos.total.toStringAsFixed(2)}',
+                    '$currency${total.toStringAsFixed(2)}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -1073,80 +1126,88 @@ class _LandscapeCartPanel extends StatelessWidget {
               color: Color(0x55000000),
               border: Border(left: BorderSide(color: AppColors.borderMid)),
             ),
-            child: Consumer<PosProvider>(
-              builder: (context, pos, _) {
-                final currency = pos.settings['currencySymbol'] ?? '₹';
-                return Column(
-                  children: [
-                    // Header
-                    AppBar(
-                      title: const Text(
-                        'Cart',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      automaticallyImplyLeading: false,
-                      actions: [
-                        if (pos.cart.isNotEmpty)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                              size: 20,
-                            ),
-                            onPressed: pos.clearCart,
-                          ),
-                      ],
+            child: Selector<PosProvider, ({List<CartItem> items, String currency, double total, double tax, String taxLabel})>(
+              selector: (_, pos) => (
+                items: pos.cart,
+                currency: pos.settings['currencySymbol'] ?? '₹',
+                total: pos.total,
+                tax: pos.taxAmount,
+                taxLabel: pos.settings['taxLabel'] ?? 'Tax',
+              ),
+              builder: (context, data, _) => Column(
+                children: [
+                  // Header
+                  AppBar(
+                    title: const Text(
+                      'Cart',
+                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    // Cart items
-                    Expanded(
-                      child: pos.cart.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.shopping_cart_outlined,
-                                    size: 40,
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Cart is empty',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.4,
-                                      ),
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    automaticallyImplyLeading: false,
+                    actions: [
+                      if (data.items.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
+                          onPressed: () => Provider.of<PosProvider>(context, listen: false).clearCart(),
+                        ),
+                    ],
+                  ),
+                  // Cart items
+                  Expanded(
+                    child: data.items.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.shopping_cart_outlined,
+                                  size: 40,
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Cart is empty',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(
+                                      alpha: 0.4,
                                     ),
                                   ),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              itemCount: pos.cart.length,
-                              itemBuilder: (context, index) {
-                                final cartItem = pos.cart[index];
-                                return _CartItemTile(
-                                  cartItem: cartItem,
-                                  pos: pos,
-                                  currency: currency,
-                                );
-                              },
+                                ),
+                              ],
                             ),
-                    ),
-                    // Totals
-                    _CartTotals(
-                      pos: pos,
-                      currency: currency,
-                      onCheckout: () => onCheckout(pos),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: data.items.length,
+                            itemBuilder: (context, index) {
+                              return RepaintBoundary(
+                                child: _CartItemTile(
+                                  cartItem: data.items[index],
+                                  currency: data.currency,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  // Totals
+                  RepaintBoundary(
+                    child: _CartTotals(
+                      total: data.total,
+                      taxAmount: data.tax,
+                      taxLabel: data.taxLabel,
+                      currency: data.currency,
+                      onCheckout: () => onCheckout(Provider.of<PosProvider>(context, listen: false)),
                       isCheckingOut: isCheckingOut,
                       useSafeArea: false,
                     ),
-                  ],
-                );
-              },
+                  ),
+                ],
+              ),
             ),
           ),
         ),

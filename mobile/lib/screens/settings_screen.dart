@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../utils/app_colors.dart';
 
@@ -23,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController currencyController = TextEditingController();
   final TextEditingController taxController = TextEditingController();
   final TextEditingController tableCountController = TextEditingController();
+  final TextEditingController serverIpController = TextEditingController();
 
   @override
   void initState() {
@@ -38,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     currencyController.dispose();
     taxController.dispose();
     tableCountController.dispose();
+    serverIpController.dispose();
     super.dispose();
   }
 
@@ -52,6 +55,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       currencyController.text = s['currencySymbol'] ?? '₹';
       taxController.text = (s['taxRate'] ?? 0).toString();
       tableCountController.text = (s['tableCount'] ?? 10).toString();
+      
+      final prefs = await SharedPreferences.getInstance();
+      serverIpController.text = prefs.getString('server_ip') ?? '10.0.2.2';
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -75,6 +81,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'taxRate': double.tryParse(taxController.text) ?? 0.0,
         'tableCount': int.tryParse(tableCountController.text) ?? 10,
       });
+
+      if (serverIpController.text.trim().isNotEmpty) {
+        await api.setServerIp(serverIpController.text.trim());
+      }
       HapticFeedback.lightImpact();
       messenger.showSnackBar(
         SnackBar(

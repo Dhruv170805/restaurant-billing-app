@@ -16,13 +16,45 @@ Future<pw.Font> _unicodeFontItalic() async {
 }
 
 class PdfGenerator {
+  static String _formatTime(String isoString, Map<String, dynamic> settings) {
+    try {
+      final dt = DateTime.parse(isoString).toUtc();
+      // Simple manual offset for Asia/Kolkata since it's the most common case for this user
+      // A more robust solution would use the timezone package, but we'll start with this
+      // if timezone is not specified or recognized.
+      if (settings['timezone'] == 'Asia/Kolkata') {
+        final kolkataTime = dt.add(const Duration(hours: 5, minutes: 30));
+        return "${kolkataTime.year}-${kolkataTime.month.toString().padLeft(2, '0')}-${kolkataTime.day.toString().padLeft(2, '0')} ${kolkataTime.hour.toString().padLeft(2, '0')}:${kolkataTime.minute.toString().padLeft(2, '0')}";
+      }
+      return dt.toLocal().toString().substring(0, 16);
+    } catch (e) {
+      return isoString.substring(0, 16);
+    }
+  }
+
+  static String _cleanText(String? text) {
+    if (text == null) return '';
+    // This is a simple fix to remove emojis that would otherwise render as boxes in PDFs
+    // without a dedicated emoji font. It preserves standard alphanumeric and symbols.
+    return text.replaceAll(RegExp(r'[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]', unicode: true), '');
+  }
+
   static Future<pw.Document> generateKOT(
     Order order,
-    Map<String, dynamic> settings,
-  ) async {
+    Map<String, dynamic> settings, {
+    List<OrderItem>? overrideItems,
+  }) async {
     final pdf = pw.Document();
     final regular = await _unicodeFont();
     final bold = await _unicodeFont(bold: true);
+
+    final itemsToPrint = overrideItems ??
+        order.items.where((i) => i.quantity > i.printedQuantity).toList();
+
+    if (itemsToPrint.isEmpty && overrideItems == null) {
+      // If nothing to print and no override, we still return a doc but maybe empty?
+      // Better to handle this in the UI.
+    }
 
     pdf.addPage(
       pw.Page(
@@ -32,7 +64,7 @@ class PdfGenerator {
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
               pw.Text(
-                settings['restaurantName'] ?? 'Restaurant',
+                _cleanText(settings['restaurantName'] ?? 'Restaurant'),
                 style: pw.TextStyle(font: bold, fontSize: 24),
               ),
               pw.SizedBox(height: 10),
@@ -58,7 +90,7 @@ class PdfGenerator {
                 ],
               ),
               pw.Divider(),
-              ...order.items.map(
+              ...itemsToPrint.map(
                 (item) => pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(vertical: 2),
                   child: pw.Row(
@@ -66,12 +98,12 @@ class PdfGenerator {
                     children: [
                       pw.Expanded(
                         child: pw.Text(
-                          item.name,
+                          _cleanText(item.name),
                           style: pw.TextStyle(font: regular),
                         ),
                       ),
                       pw.Text(
-                        'x${item.quantity}',
+                        'x${overrideItems != null ? item.quantity : (item.quantity - item.printedQuantity)}',
                         style: pw.TextStyle(font: bold),
                       ),
                     ],
@@ -80,7 +112,7 @@ class PdfGenerator {
               ),
               pw.Divider(),
               pw.Text(
-                DateTime.parse(order.createdAt).toString().substring(0, 16),
+                _formatTime(order.createdAt, settings),
                 style: pw.TextStyle(font: regular),
               ),
             ],
@@ -97,7 +129,7 @@ class PdfGenerator {
     Map<String, dynamic> settings,
   ) async {
     final pdf = pw.Document();
-    final currency = settings['currencySymbol'] ?? '\$';
+    final currency = settings['currencySymbol'] ?? '₹';
     final regular = await _unicodeFont();
     final bold = await _unicodeFont(bold: true);
     final italic = await _unicodeFontItalic();
@@ -110,7 +142,7 @@ class PdfGenerator {
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
               pw.Text(
-                settings['restaurantName'] ?? 'Restaurant',
+                _cleanText(settings['restaurantName'] ?? 'Restaurant'),
                 style: pw.TextStyle(font: bold, fontSize: 24),
               ),
               if (settings['restaurantAddress'] != null)
@@ -175,7 +207,7 @@ class PdfGenerator {
                       pw.Expanded(
                         flex: 2,
                         child: pw.Text(
-                          item.name,
+                          _cleanText(item.name),
                           style: pw.TextStyle(font: regular),
                         ),
                       ),
@@ -243,14 +275,19 @@ class PdfGenerator {
               pw.Divider(),
               pw.SizedBox(height: 10),
               pw.Text(
-                settings['restaurantTagline'] ??
-                    'Thank you for dining with us!',
+                _cleanText(
+                  settings['billGreeting'] != null &&
+                          settings['billGreeting'].toString().isNotEmpty
+                      ? settings['billGreeting']
+                      : (settings['restaurantTagline'] ??
+                          'Thank you for dining with us!'),
+                ),
                 textAlign: pw.TextAlign.center,
                 style: pw.TextStyle(font: italic),
               ),
               pw.SizedBox(height: 5),
               pw.Text(
-                DateTime.parse(order.createdAt).toString().substring(0, 16),
+                _formatTime(order.createdAt, settings),
                 style: pw.TextStyle(font: regular),
               ),
             ],

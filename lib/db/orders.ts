@@ -3,6 +3,7 @@ import { PaginatedOrders } from '@/types'
 import { Order, OrderItem } from '@/lib/db'
 import { DbOrder, DbMenuItem } from './schema'
 import { upsertCustomerRecord } from './customers'
+import { emitEvent } from '../socket'
 
 export async function getOrders(): Promise<Order[]> {
   return (await getOrdersPaginated(1, 1000)).orders
@@ -116,7 +117,9 @@ export async function createOrder(
   }
 
   await db.collection<DbOrder>('orders').insertOne(newOrder)
-  return (await getOrder(orderId))!
+  const order = (await getOrder(orderId))!
+  emitEvent('ORDER_UPDATED', { orderId, type: 'CREATED', tableNumber })
+  return order
 }
 
 export async function addItemsToOrder(orderId: number, items: OrderItem[]): Promise<Order> {
@@ -166,7 +169,9 @@ export async function addItemsToOrder(orderId: number, items: OrderItem[]): Prom
     }
   )
 
-  return (await getOrder(orderId))!
+  const updatedOrder = (await getOrder(orderId))!
+  emitEvent('ORDER_UPDATED', { orderId, type: 'ITEMS_ADDED', tableNumber: updatedOrder.tableNumber })
+  return updatedOrder
 }
 
 export async function updateOrderStatus(
@@ -202,6 +207,7 @@ export async function updateOrderStatus(
     }
   }
 
+  emitEvent('ORDER_UPDATED', { orderId: id, type: 'STATUS_UPDATED', status, tableNumber: updatedOrder.tableNumber })
   return updatedOrder
 }
 
@@ -227,5 +233,9 @@ export async function markKOTPrinted(orderId: number): Promise<Order | null> {
     { $set: { items: newItems, updatedAt: now } }
   )
 
-  return (await getOrder(orderId)) || null
+  const updated = (await getOrder(orderId)) || null
+  if (updated) {
+    emitEvent('ORDER_UPDATED', { orderId, type: 'KOT_PRINTED', tableNumber: updated.tableNumber })
+  }
+  return updated
 }

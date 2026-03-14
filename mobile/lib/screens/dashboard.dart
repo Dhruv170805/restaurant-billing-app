@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../models/order.dart';
 import '../providers/pos_provider.dart';
 import 'pos_screen.dart';
+import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoading = true;
   List<Order> activeOrders = [];
   Map<String, dynamic> settings = {};
+  StreamSubscription? _socketSub;
   Timer? _clockTimer;
 
   @override
@@ -31,6 +33,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     api = widget.api ?? ApiService();
     loadDashboard();
+    
+    // Listen for real-time updates
+    _socketSub = SocketService().eventStream.listen((event) {
+      if (mounted) loadDashboard(silent: true);
+    });
+
     // Redraw timers every 30s so elapsed time updates
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
@@ -39,12 +47,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    _socketSub?.cancel();
     _clockTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> loadDashboard() async {
-    setState(() => isLoading = true);
+  Future<void> loadDashboard({bool silent = false}) async {
+    if (!silent) setState(() => isLoading = true);
     try {
       final fetchedSettings = await api.fetchSettings();
       if (!mounted) return;
@@ -65,9 +74,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (!silent) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -592,7 +603,7 @@ class _TableCardState extends State<_TableCard>
   void _showQrDialog(BuildContext context) {
     final orderId = widget.order?.id;
     final qrUrl =
-        '${ApiService().webUrl}/order/${orderId ?? widget.tableNumber}';
+        '${ApiService().webUrl}/orders/${orderId ?? widget.tableNumber}';
     showDialog(
       context: context,
       builder: (_) => BackdropFilter(

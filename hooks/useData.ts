@@ -45,7 +45,9 @@ export function useCategories() {
 }
 
 export function useOrders() {
-  const { data, error, mutate } = useSWR<Order[]>('/api/orders', fetcher)
+  const { data, error, mutate } = useSWR<Order[]>('/api/orders', fetcher, {
+    refreshInterval: 10000, // Refresh every 10s
+  })
   return {
     orders: data || [],
     isLoading: !error && !data,
@@ -55,7 +57,9 @@ export function useOrders() {
 }
 
 export function useDashboard() {
-  const { data, error, mutate } = useSWR<DashboardStats>('/api/dashboard', fetcher)
+  const { data, error, mutate } = useSWR<DashboardStats>('/api/dashboard', fetcher, {
+    refreshInterval: 30000, // Refresh every 30s
+  })
   return {
     stats: data,
     isLoading: !error && !data,

@@ -53,19 +53,6 @@ class AppColors {
   );
 }
 
-/// Timing constants used across screens for caching, auto-refresh, etc.
-class AppDurations {
-  AppDurations._();
-
-  static const Duration cacheTtl = Duration(minutes: 3);
-  static const Duration kdsRefresh = Duration(seconds: 20);
-  static const Duration dashboardRefresh = Duration(seconds: 30);
-  static const Duration httpTimeout = Duration(seconds: 12);
-  static const Duration animFast = Duration(milliseconds: 200);
-  static const Duration animMedium = Duration(milliseconds: 350);
-  static const Duration animSlow = Duration(milliseconds: 600);
-  static const Duration animElastic = Duration(milliseconds: 600);
-}
 
 /// KDS: orders flagged after these time thresholds
 class AppThresholds {

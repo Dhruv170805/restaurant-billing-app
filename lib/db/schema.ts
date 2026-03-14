@@ -53,6 +53,8 @@ export interface DbSettings extends Document {
   tableCount: number
   timezone: string
   ownerPhone?: string // WhatsApp Business / Contact Number
+  theme?: 'light' | 'dark' | 'system'
+  billGreeting?: string
 }
 
 export interface DbCounter extends Document {

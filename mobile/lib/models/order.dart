@@ -3,12 +3,14 @@ class OrderItem {
   final String name;
   final int quantity;
   final double price;
+  final int printedQuantity;
 
   OrderItem({
     required this.menuItemId,
     required this.name,
     required this.quantity,
     required this.price,
+    this.printedQuantity = 0,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class OrderItem {
       name: json['name'] ?? json['menuItem']?['name'] ?? 'Unknown',
       quantity: json['quantity'],
       price: (json['price'] ?? json['priceAtOrder'] as num).toDouble(),
+      printedQuantity: json['printedQuantity'] ?? 0,
     );
   }
 }

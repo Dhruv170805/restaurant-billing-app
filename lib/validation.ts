@@ -122,6 +122,8 @@ const VALID_SETTING_KEYS = new Set([
   'tableCount',
   'timezone',
   'ownerPhone',
+  'theme',
+  'billGreeting',
   '_id',
 ])
 
@@ -219,6 +221,12 @@ export function validateSettingsUpdate(body: Record<string, unknown>): Record<st
         break
       case 'timezone':
         validated[key] = validateStringLength(value, 'Timezone', 2, 40)
+        break
+      case 'theme':
+        validated[key] = validateEnum(value, ['light', 'dark', 'system'], 'Theme')
+        break
+      case 'billGreeting':
+        validated[key] = validateOptionalStringLength(value, 'Bill greeting', 0, 500)
         break
     }
   }

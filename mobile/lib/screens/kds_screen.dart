@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../models/order.dart';
 import '../providers/pos_provider.dart';
+import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
 
 /// Kitchen Display System Screen
@@ -24,17 +25,21 @@ class _KDSScreenState extends State<KDSScreen> {
   final ApiService _api = ApiService();
   List<Order> _orders = [];
   bool _isLoading = true;
-  Timer? _refreshTimer;
+  StreamSubscription? _socketSub;
   Timer? _clockTimer;
 
   @override
   void initState() {
     super.initState();
     _loadOrders();
-    // Refresh every 20 seconds for real-time feel
-    _refreshTimer = Timer.periodic(const Duration(seconds: 20), (_) {
-      if (mounted) _loadOrders(silent: true);
+    
+    // Listen for real-time order updates
+    _socketSub = SocketService().eventStream.listen((event) {
+      if (event['event'] == SocketEvent.orderUpdated) {
+        if (mounted) _loadOrders(silent: true);
+      }
     });
+
     // Redraw timers every 30 seconds
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
@@ -43,7 +48,7 @@ class _KDSScreenState extends State<KDSScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
+    _socketSub?.cancel();
     _clockTimer?.cancel();
     super.dispose();
   }

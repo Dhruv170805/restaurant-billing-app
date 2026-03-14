@@ -1,6 +1,7 @@
 import { ensureInitialized } from './mongo'
 import { AppSettings } from '@/lib/db'
 import { DbSettings } from './schema'
+import { emitEvent } from '../socket'
 
 export async function getSettings(): Promise<AppSettings> {
   const db = await ensureInitialized()
@@ -39,6 +40,8 @@ export async function getSettings(): Promise<AppSettings> {
     tableCount: Number(settingsDoc.tableCount) ?? defaultSettings.tableCount,
     timezone: settingsDoc.timezone ?? defaultSettings.timezone,
     ownerPhone: settingsDoc.ownerPhone ?? defaultSettings.ownerPhone,
+    theme: settingsDoc.theme ?? 'system',
+    billGreeting: settingsDoc.billGreeting ?? '',
     _id: settingsDoc._id ?? defaultSettings._id,
   } as AppSettings
 }
@@ -48,5 +51,8 @@ export async function updateSettings(updates: Partial<AppSettings>): Promise<App
   await db
     .collection<DbSettings>('settings')
     .updateOne({ _id: 'app_settings' }, { $set: updates }, { upsert: true })
-  return getSettings()
+  
+  const settings = await getSettings()
+  emitEvent('SETTINGS_UPDATED', settings)
+  return settings
 }

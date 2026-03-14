@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { DbSettings } from '@/lib/db/schema'
@@ -9,6 +10,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<DbSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -41,6 +43,7 @@ export default function SettingsPage() {
         const data = await res.json()
         setSettings(data)
         toast.success('Settings saved successfully!')
+        router.refresh()
       } else {
         toast.error('Failed to save settings')
       }
@@ -51,9 +54,22 @@ export default function SettingsPage() {
     setSaving(false)
   }
 
+  const applyTheme = (theme: string) => {
+    if (theme === 'system') {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
+    } else {
+      document.documentElement.setAttribute('data-theme', theme)
+    }
+  }
+
   const updateField = (field: keyof DbSettings, value: string | number | boolean) => {
     if (!settings) return
     setSettings({ ...settings, [field]: value })
+    
+    if (field === 'theme') {
+      applyTheme(value as string)
+    }
   }
 
   if (loading) {
@@ -150,6 +166,35 @@ export default function SettingsPage() {
               placeholder="e.g. Thank you for dining with us!"
             />
           </div>
+          <div className="form-group">
+            <label className="form-label">Custom Bill Greeting (supports Emojis)</label>
+            <input
+              type="text"
+              className="form-input"
+              value={settings.billGreeting || ''}
+              onChange={(e) => updateField('billGreeting', e.target.value)}
+              placeholder="e.g. Hope to see you again! 😊"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Appearance */}
+      <div className="card">
+        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem', fontWeight: 700 }}>
+          🎨 Appearance
+        </h3>
+        <div className="form-group">
+          <label className="form-label">Application Theme</label>
+          <select 
+            className="form-input" 
+            value={settings.theme || 'system'}
+            onChange={(e) => updateField('theme', e.target.value)}
+          >
+            <option value="light">Light Mode</option>
+            <option value="dark">Dark Mode</option>
+            <option value="system">Follow System</option>
+          </select>
         </div>
       </div>
 
