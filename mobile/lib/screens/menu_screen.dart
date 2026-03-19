@@ -142,13 +142,13 @@ class _MenuScreenState extends State<MenuScreen> {
               filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
               child: StatefulBuilder(
                 builder: (context, setSheet) => Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xEE0A0A0F),
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95),
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(28),
                     ),
                     border: Border(
-                      top: BorderSide(color: Color(0x22FFFFFF), width: 0.5),
+                      top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
                     ),
                   ),
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
@@ -161,7 +161,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           width: 36,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.25),
+                            color: Theme.of(context).dividerColor,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -209,9 +209,9 @@ class _MenuScreenState extends State<MenuScreen> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0x10FFFFFF),
+                            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0x20FFFFFF)),
+                            border: Border.all(color: Theme.of(context).dividerColor),
                           ),
                           child: Row(
                             children: [
@@ -240,10 +240,10 @@ class _MenuScreenState extends State<MenuScreen> {
                                 width: 44,
                                 height: 26,
                                 decoration: BoxDecoration(
-                                  color: isAvailable
-                                      ? AppColors.green
-                                      : const Color(0x30FFFFFF),
-                                  borderRadius: BorderRadius.circular(13),
+                                    color: isAvailable
+                                        ? AppColors.green
+                                        : Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(13),
                                 ),
                                 child: AnimatedAlign(
                                   duration: const Duration(milliseconds: 200),
@@ -371,13 +371,13 @@ class _MenuScreenState extends State<MenuScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0x22FFFFFF),
+                      color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${menuItems.length} items',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -389,9 +389,12 @@ class _MenuScreenState extends State<MenuScreen> {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xAA000000), Color(0x00000000)],
+                        colors: [
+                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95),
+                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
+                        ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -435,12 +438,12 @@ class _MenuScreenState extends State<MenuScreen> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? AppColors.orange
-                              : const Color(0x14FFFFFF),
+                              : Theme.of(context).dividerColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isSelected
                                 ? AppColors.orange
-                                : const Color(0x25FFFFFF),
+                                : Theme.of(context).dividerColor,
                           ),
                         ),
                         child: Row(
@@ -450,7 +453,7 @@ class _MenuScreenState extends State<MenuScreen> {
                               style: TextStyle(
                                 color: isSelected
                                     ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.6),
+                                    : Theme.of(context).textTheme.bodyLarge?.color,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
                               ),
@@ -465,7 +468,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? Colors.white.withValues(alpha: 0.25)
-                                      : const Color(0x20FFFFFF),
+                                      : Theme.of(context).dividerColor.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -473,7 +476,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                   style: TextStyle(
                                     color: isSelected
                                         ? Colors.white
-                                        : Colors.white.withValues(alpha: 0.5),
+                                        : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -502,13 +505,13 @@ class _MenuScreenState extends State<MenuScreen> {
                     Icon(
                       Icons.restaurant_menu_outlined,
                       size: 60,
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.2),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'No items in this category',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.35),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
                       ),
                     ),
                   ],
@@ -622,11 +625,11 @@ class _MenuItemCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: const Color(0x10FFFFFF),
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: item.isAvailable
-                ? AppColors.borderSubtle
+                ? (Theme.of(context).cardTheme.shape is RoundedRectangleBorder ? (Theme.of(context).cardTheme.shape as RoundedRectangleBorder).side.color : AppColors.borderSubtle)
                 : const Color(0x15EF4444),
           ),
         ),
@@ -657,8 +660,8 @@ class _MenuItemCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                         color: item.isAvailable
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.45),
+                            ? Theme.of(context).textTheme.bodyLarge?.color
+                            : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.45),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -670,7 +673,7 @@ class _MenuItemCard extends StatelessWidget {
                             vertical: 1,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0x15FFFFFF),
+                            color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -722,13 +725,13 @@ class _MenuItemCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: const Color(0x12FFFFFF),
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.edit_outlined,
                     size: 16,
-                    color: Colors.white70,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -758,26 +761,30 @@ class _GlassField extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+      style: TextStyle(
+          fontSize: 15, 
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+      ),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
-          color: Colors.white.withValues(alpha: 0.5),
+          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
           fontSize: 13,
         ),
         filled: true,
-        fillColor: const Color(0x10FFFFFF),
+        fillColor: Theme.of(context).dividerColor.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0x20FFFFFF)),
+          borderSide: BorderSide(color: Theme.of(context).dividerColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0x20FFFFFF)),
+          borderSide: BorderSide(color: Theme.of(context).dividerColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0x80FF6A00), width: 1.5),
+          borderSide: const BorderSide(color: AppColors.orange, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,

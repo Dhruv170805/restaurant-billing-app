@@ -23,6 +23,7 @@ class SalesDashboardScreen extends StatefulWidget {
 class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
   final ApiService api = ApiService();
   bool isLoading = true;
+  String? errorMessage;
   Map<String, dynamic> stats = {};
   StreamSubscription? _socketSub;
 
@@ -46,21 +47,26 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
   }
 
   Future<void> loadStats({bool silent = false}) async {
-    if (!silent) setState(() => isLoading = true);
+    if (!silent) setState(() { isLoading = true; errorMessage = null; });
     try {
       final data = await api.fetchDashboardStats();
       if (!mounted) return;
       setState(() {
         stats = data;
         isLoading = false;
+        errorMessage = null;
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => isLoading = false);
-      if (!silent) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to load sales stats: $e')));
+      setState(() {
+        isLoading = false;
+        errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+      if (!silent && stats.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Update failed: $errorMessage'),
+          backgroundColor: AppColors.dangerAlt,
+        ));
       }
     }
   }
@@ -484,19 +490,19 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
-              title: const Text(
+              title: Text(
                 'Sales',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
-                  color: Colors.white,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
                 ),
               ),
               background: ClipRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: Container(color: Colors.transparent),
+                  child: Container(color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8)),
                 ),
               ),
             ),
@@ -518,7 +524,43 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
 
           if (isLoading)
             const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CircularProgressIndicator(color: AppColors.orangeAlt)),
+            )
+          else if (errorMessage != null && stats.isEmpty)
+             SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off_rounded, size: 64, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3)),
+                    const SizedBox(height: 24),
+                    Text('Connection Interrupted', 
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: Theme.of(context).textTheme.displayLarge?.color),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(errorMessage ?? 'Unknown error occurred.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.4),
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: loadStats,
+                      icon: const Icon(Icons.refresh_rounded, size: 20),
+                      label: const Text('Retry Connection'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.orangeAlt.withValues(alpha: 0.15),
+                        foregroundColor: AppColors.orangeAlt,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        side: BorderSide(color: AppColors.orangeAlt.withValues(alpha: 0.3)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             )
           else
             SliverPadding(
@@ -808,9 +850,9 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0x14FFFFFF),
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x44FF3B30), width: 0.5),
+        border: Border.all(color: AppColors.dangerAlt.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -841,10 +883,10 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                 const Spacer(),
                 Text(
                   '$currency${total.toStringAsFixed(2)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
               ],
@@ -861,8 +903,8 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                 const SizedBox(width: 6),
                 Text(
                   order['customerName'] ?? 'Unknown Customer',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -895,23 +937,23 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0x22FFFFFF),
+                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0x22FFFFFF) : const Color(0x0C000000),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x44FFFFFF)),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                       ),
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             Icons.receipt_long_rounded,
                             size: 16,
-                            color: Colors.white,
+                            color: Theme.of(context).iconTheme.color,
                           ),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
                             'View Bill',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,
                             ),
@@ -929,23 +971,23 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0x22FFFFFF),
+                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0x22FFFFFF) : const Color(0x0C000000),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x33FFFFFF)),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                       ),
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             Icons.print_rounded,
                             size: 16,
-                            color: Colors.white,
+                            color: Theme.of(context).iconTheme.color,
                           ),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
                             'Print',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,
                             ),
@@ -1312,7 +1354,7 @@ class _TopSellingChart extends StatelessWidget {
                           '${qty.toInt()} sold · $currency${revenue.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -1460,7 +1502,7 @@ class _AiPredictionCard extends StatelessWidget {
                 Text(
                   'Not enough data yet — predictions improve after 7 days of sales.',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.4),
                     fontSize: 13,
                   ),
                 )
@@ -1472,7 +1514,7 @@ class _AiPredictionCard extends StatelessWidget {
                       'Est. Tomorrow',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.55),
                       ),
                     ),
                     const Spacer(),
@@ -1495,7 +1537,7 @@ class _AiPredictionCard extends StatelessWidget {
                       'Confidence',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.45),
+                        color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.45),
                       ),
                     ),
                     const Spacer(),
@@ -1504,7 +1546,7 @@ class _AiPredictionCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -1534,7 +1576,7 @@ class _AiPredictionCard extends StatelessWidget {
                       'Predicted peak: $peakHours',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.55),
                       ),
                     ),
                   ],

@@ -90,14 +90,23 @@ class _MainLayoutState extends State<MainLayout> {
             child: Container(
               height: 68,
               decoration: BoxDecoration(
-                color: const Color(0xCC0A0A0A),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xCC000000)
+                    : Colors.white.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(36),
-                border: Border.all(color: const Color(0x44FFFFFF), width: 0.5),
-                boxShadow: const [
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0x33444444)
+                      : const Color(0x44FFFFFF),
+                  width: 0.5,
+                ),
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x66000000),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black.withValues(alpha: 0.5)
+                        : Theme.of(context).shadowColor.withValues(alpha: 0.15),
                     blurRadius: 30,
-                    offset: Offset(0, 8),
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -143,7 +152,7 @@ class _MainLayoutState extends State<MainLayout> {
               isSelected ? item.activeIcon : item.icon,
               color: isSelected
                   ? AppColors.orangeAlt
-                  : Colors.white.withValues(alpha: 0.4),
+                  : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.45) ?? Colors.grey,
               size: 22,
             ),
             AnimatedSize(

@@ -3,6 +3,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import '../providers/pos_provider.dart';
 import '../services/api_service.dart';
 import '../utils/app_colors.dart';
 
@@ -25,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController taxController = TextEditingController();
   final TextEditingController tableCountController = TextEditingController();
   final TextEditingController serverIpController = TextEditingController();
+  String selectedTheme = 'system';
 
   @override
   void initState() {
@@ -55,9 +59,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       currencyController.text = s['currencySymbol'] ?? '₹';
       taxController.text = (s['taxRate'] ?? 0).toString();
       tableCountController.text = (s['tableCount'] ?? 10).toString();
+      selectedTheme = s['theme'] ?? 'system';
       
       final prefs = await SharedPreferences.getInstance();
-      serverIpController.text = prefs.getString('server_ip') ?? '10.0.2.2';
+      serverIpController.text = prefs.getString('server_ip') ?? dotenv.env['API_BASE_URL'] ?? '';
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -80,6 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'currencySymbol': currencyController.text.trim(),
         'taxRate': double.tryParse(taxController.text) ?? 0.0,
         'tableCount': int.tryParse(tableCountController.text) ?? 10,
+        'theme': selectedTheme,
       });
 
       if (serverIpController.text.trim().isNotEmpty) {
@@ -128,9 +134,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xAA000000), Color(0x00000000)],
+                        colors: [
+                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95), 
+                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0)
+                        ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -150,6 +159,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  // ── Preferences ──────────────────────────────────────────────
+                  _SectionHeader(
+                    icon: Icons.palette_outlined,
+                    color: AppColors.orangeAlt,
+                    label: 'Preferences',
+                  ),
+                  _GlassSection(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'App Theme',
+                              style: TextStyle(
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: SegmentedButton<String>(
+                                segments: const [
+                                  ButtonSegment<String>(
+                                    value: 'light',
+                                    label: Text('Light'),
+                                    icon: Icon(Icons.light_mode_rounded, size: 16),
+                                  ),
+                                  ButtonSegment<String>(
+                                    value: 'dark',
+                                    label: Text('Dark'),
+                                    icon: Icon(Icons.dark_mode_rounded, size: 16),
+                                  ),
+                                  ButtonSegment<String>(
+                                    value: 'system',
+                                    label: Text('Auto'),
+                                    icon: Icon(Icons.settings_suggest_rounded, size: 16),
+                                  ),
+                                ],
+                                selected: {selectedTheme},
+                                onSelectionChanged: (Set<String> newSelection) {
+                                  final newTheme = newSelection.first;
+                                  setState(() {
+                                    selectedTheme = newTheme;
+                                  });
+                                  // Optimistically apply the layout instantly:
+                                  final pos = Provider.of<PosProvider>(context, listen: false);
+                                  final Map<String, dynamic> optimisticSettings = Map<String, dynamic>.from(pos.settings);
+                                  optimisticSettings['theme'] = newTheme;
+                                  pos.setSettings(optimisticSettings);
+                                },
+                                style: SegmentedButton.styleFrom(
+                                  side: BorderSide(color: Theme.of(context).dividerColor),
+                                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  backgroundColor: Colors.transparent,
+                                  selectedBackgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
                   // ── Restaurant Profile ────────────────────────────────
                   _SectionHeader(
                     icon: Icons.store_rounded,
@@ -381,7 +460,7 @@ class _SectionHeader extends StatelessWidget {
           Text(
             label.toUpperCase(),
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8) ?? Colors.grey,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
@@ -407,9 +486,9 @@ class _GlassSection extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0x10FFFFFF),
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.borderSubtle),
+            border: Border.all(color: Theme.of(context).cardTheme.shape is RoundedRectangleBorder ? ((Theme.of(context).cardTheme.shape as RoundedRectangleBorder).side.color) : AppColors.borderSubtle),
           ),
           child: Column(mainAxisSize: MainAxisSize.min, children: children),
         ),
@@ -428,7 +507,7 @@ class _SectionDivider extends StatelessWidget {
     return Container(
       height: 0.5,
       margin: const EdgeInsets.only(left: 52),
-      color: const Color(0x16FFFFFF),
+      color: Theme.of(context).dividerColor,
     );
   }
 }
@@ -459,13 +538,13 @@ class _SettingsField extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: const Color(0x12FFFFFF),
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(9),
             ),
             child: Icon(
               icon,
               size: 16,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(width: 12),
@@ -473,16 +552,20 @@ class _SettingsField extends StatelessWidget {
             child: TextField(
               controller: controller,
               keyboardType: keyboard,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                  fontSize: 15, 
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
               decoration: InputDecoration(
                 labelText: label,
                 hintText: hint,
                 labelStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                   fontSize: 12,
                 ),
                 hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.3),
                   fontSize: 14,
                 ),
                 border: InputBorder.none,

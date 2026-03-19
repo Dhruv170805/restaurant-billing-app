@@ -57,8 +57,9 @@ export function useOrders() {
 }
 
 export function useDashboard() {
+  const refreshInterval = Number(process.env.NEXT_PUBLIC_REFRESH_INTERVAL) || 30000
   const { data, error, mutate } = useSWR<DashboardStats>('/api/dashboard', fetcher, {
-    refreshInterval: 30000, // Refresh every 30s
+    refreshInterval, // Refresh according to .env or every 30s
   })
   return {
     stats: data,

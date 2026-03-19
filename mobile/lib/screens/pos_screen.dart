@@ -373,7 +373,7 @@ class _POSScreenState extends State<POSScreen> {
         title: Text(
           'Table ${widget.tableNumber}${widget.orderId != null ? " (#${widget.orderId})" : ""}',
         ),
-        backgroundColor: const Color(0xAA050505),
+        backgroundColor: Theme.of(context).cardTheme.color?.withValues(alpha: 0.8) ?? Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -597,9 +597,9 @@ class _POSScreenState extends State<POSScreen> {
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.borderSubtle,
+              color: Theme.of(context).cardTheme.color,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.borderMid),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             padding: const EdgeInsets.all(8),
             child: Column(
@@ -610,10 +610,10 @@ class _POSScreenState extends State<POSScreen> {
                     child: Text(
                       item.name,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
-                        color: Colors.white,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
                         letterSpacing: -0.2,
                       ),
                       maxLines: 3,
@@ -776,11 +776,13 @@ class _CartBottomSheet extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
             child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xDD0A0A0A),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xDD0A0A0A)
+                    : Colors.white.withValues(alpha: 0.95),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                 border: Border(
-                  top: BorderSide(color: Color(0x33FFFFFF), width: 0.5),
+                  top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
                 ),
               ),
               child: Column(
@@ -791,7 +793,7 @@ class _CartBottomSheet extends StatelessWidget {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: Theme.of(context).dividerColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),

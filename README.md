@@ -37,25 +37,21 @@ The system follows a **Reactive Event-Driven Architecture (REDA)**, ensuring tha
 ## 🛠️ Infrastructure Setup
 
 ### Web / API Engine
-1. **Environment Config**:
-   Create a `.env.local` at the root:
-   ```env
-   MONGODB_URI=mongodb+srv://...
-   ```
-2. **Boot Sequence**:
-   ```bash
-   npm install && npm run dev
-   ```
-   *The system will initialize the custom `server.js` gateway on port 3000.*
+1. **Production Deployment**:
+   - The web app and backend route handlers are deployed on Vercel (`https://restaurant-billing-app-self.vercel.app`).
+   - MongoDB Atlas serves as the decoupled database cluster.
 
 ### Mobile Fleet
-1. **Dependency Sync**:
+1. **Environment Config**:
+   Define the production URL in `/mobile/.env`:
+   ```env
+   API_BASE_URL=https://restaurant-billing-app-self.vercel.app
+   ```
+2. **Build & Release**:
    ```bash
    cd mobile && flutter pub get
+   flutter run -d ios # Physical device execution
    ```
-2. **Network Handshake**:
-   - Ensure the mobile fleet is on the same subnet as the Web Gateway.
-   - Navigate to **Settings** in the app and input the Server's local IP (e.g., `192.168.1.5`).
 
 ---
 

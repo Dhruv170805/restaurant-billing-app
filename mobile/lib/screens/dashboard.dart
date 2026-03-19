@@ -23,6 +23,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   late final ApiService api;
   bool isLoading = true;
+  String? errorMessage;
   List<Order> activeOrders = [];
   Map<String, dynamic> settings = {};
   StreamSubscription? _socketSub;
@@ -53,7 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> loadDashboard({bool silent = false}) async {
-    if (!silent) setState(() => isLoading = true);
+    if (!silent) setState(() { isLoading = true; errorMessage = null; });
     try {
       final fetchedSettings = await api.fetchSettings();
       if (!mounted) return;
@@ -70,14 +71,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             .where((o) => o.status == 'PENDING')
             .toList();
         isLoading = false;
+        errorMessage = null;
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => isLoading = false);
-      if (!silent) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      setState(() {
+        isLoading = false;
+        errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+      if (!silent && activeOrders.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Update failed: $errorMessage'),
+          backgroundColor: AppColors.dangerAlt,
+        ));
       }
     }
   }
@@ -120,22 +126,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
-              title: const Text(
+              title: Text(
                 'Tables',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
-                  color: Colors.white,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
                 ),
               ),
               background: ClipRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0x88000000), Color(0x00000000)],
+                        colors: [
+                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95),
+                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
+                        ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -153,9 +162,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0x22FFFFFF),
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0x33FFFFFF)),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -168,8 +177,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 5),
                     Text(
                       '$occupiedCount/$tableCount seats',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -217,7 +226,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           if (isLoading)
             const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CircularProgressIndicator(color: AppColors.orangeAlt)),
+            )
+          else if (errorMessage != null && activeOrders.isEmpty)
+             SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off_rounded, size: 64, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3)),
+                    const SizedBox(height: 24),
+                    Text('Connection Interrupted', 
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: Theme.of(context).textTheme.displayLarge?.color),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(errorMessage ?? 'Unknown error occurred.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.4),
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: loadDashboard,
+                      icon: const Icon(Icons.refresh_rounded, size: 20),
+                      label: const Text('Retry Connection'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.orangeAlt.withValues(alpha: 0.15),
+                        foregroundColor: AppColors.orangeAlt,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        side: BorderSide(color: AppColors.orangeAlt.withValues(alpha: 0.3)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             )
           else
             SliverPadding(
@@ -295,7 +340,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
             fontSize: 11,
           ),
         ),
@@ -376,14 +421,17 @@ class _TableCardState extends State<_TableCard>
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
-                    : const LinearGradient(
-                        colors: [AppColors.borderSubtle, Color(0x08FFFFFF)],
+                    : LinearGradient(
+                        colors: [
+                          Theme.of(context).cardTheme.color ?? Colors.transparent,
+                          Theme.of(context).cardTheme.color ?? Colors.transparent,
+                        ],
                       ),
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
                   color: isOccupied
                       ? glowColor.withValues(alpha: 0.45)
-                      : const Color(0x20FFFFFF),
+                      : Theme.of(context).dividerColor,
                   width: 0.8,
                 ),
                 boxShadow: isOccupied
@@ -408,7 +456,7 @@ class _TableCardState extends State<_TableCard>
                         decoration: BoxDecoration(
                           color: isOccupied
                               ? glowColor.withValues(alpha: 0.2)
-                              : const Color(0x16FFFFFF),
+                              : Theme.of(context).dividerColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -416,7 +464,7 @@ class _TableCardState extends State<_TableCard>
                               ? Icons.dining_rounded
                               : Icons.table_restaurant_outlined,
                           size: 18,
-                          color: isOccupied ? glowColor : Colors.white54,
+                          color: isOccupied ? glowColor : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                         ),
                       ),
                       const Spacer(),
@@ -428,7 +476,7 @@ class _TableCardState extends State<_TableCard>
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: Theme.of(context).dividerColor,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -443,7 +491,7 @@ class _TableCardState extends State<_TableCard>
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 17,
-                      color: Colors.white.withValues(alpha: 0.95),
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                       letterSpacing: -0.3,
                     ),
                   ),
@@ -467,13 +515,13 @@ class _TableCardState extends State<_TableCard>
                         Icon(
                           Icons.restaurant_outlined,
                           size: 10,
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.45),
                         ),
                         const SizedBox(width: 3),
                         Text(
                           '$itemCount item${itemCount == 1 ? '' : 's'}',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                             fontSize: 11,
                           ),
                         ),
@@ -481,13 +529,13 @@ class _TableCardState extends State<_TableCard>
                         Icon(
                           Icons.timer_outlined,
                           size: 10,
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.45),
                         ),
                         const SizedBox(width: 3),
                         Text(
                           widget.elapsed ?? '',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                             fontSize: 11,
                           ),
                         ),
@@ -497,7 +545,7 @@ class _TableCardState extends State<_TableCard>
                     Text(
                       'Available',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),

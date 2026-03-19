@@ -1,9 +1,38 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/menu_item.dart';
 import '../models/order.dart';
 import '../utils/app_durations.dart';
+
+class AppConfig {
+  /// Remote server URL provided via --dart-define=API_URL=https://...
+  /// If provided, this takes precedence over local IP settings.
+  static const String apiUrl = String.fromEnvironment('API_URL');
+
+  static String get baseConfigUrl => dotenv.env['API_BASE_URL'] ?? '';
+  static String get defaultPort => dotenv.env['PORT'] ?? '3000';
+  static const String apiPath = '/api';
+
+  static bool get isProduction => apiUrl.isNotEmpty;
+
+  String get webUrl {
+    if (isProduction) return apiUrl;
+
+    String base = baseConfigUrl;
+    if (base.isEmpty) {
+      base = 'http://127.0.0.1:${AppConfig.defaultPort}'; // Generic loopback fallback
+    } else if (!base.startsWith('http')) {
+      base = 'http://$base:${AppConfig.defaultPort}';
+    }
+    return base;
+  }
+
+}
 
 class ApiService {
   // ─── Singleton Pattern ───────────────────────────────────────────────────
@@ -13,20 +42,19 @@ class ApiService {
 
   final http.Client _client = http.Client();
 
-  // Dynamic configuration defaults
-  static const String _defaultIp = '10.0.2.2'; // Standard AVD localhost bridge
-  static const String _defaultPort = '3000';
-
   Future<String> get baseUrl async {
-    final prefs = await SharedPreferences.getInstance();
-    final ip = prefs.getString('server_ip') ?? _defaultIp;
-    return 'http://$ip:$_defaultPort/api';
+    if (AppConfig.isProduction) {
+      return '${AppConfig.apiUrl}${AppConfig.apiPath}';
+    }
+    final config = AppConfig();
+    return '${config.webUrl}${AppConfig.apiPath}';
   }
 
   Future<String> get webUrl async {
-    final prefs = await SharedPreferences.getInstance();
-    final ip = prefs.getString('server_ip') ?? _defaultIp;
-    return 'http://$ip:$_defaultPort';
+    if (AppConfig.isProduction) {
+      return AppConfig.apiUrl;
+    }
+    return AppConfig().webUrl;
   }
 
   Future<void> setServerIp(String ip) async {
@@ -62,39 +90,69 @@ class ApiService {
     _client.close();
   }
 
-  // ─── Shared request helper ────────────────────────────────────────────────
+  // ─── Shared request helper with Exponential Backoff Retry ────────────────────
+  Future<http.Response> _requestWithRetry(
+      Future<http.Response> Function() requestTask, String contextLabel) async {
+    const int maxRetries = 3;
+    int attempt = 0;
+
+    while (true) {
+      attempt++;
+      try {
+        return await requestTask().timeout(AppDurations.httpTimeout);
+      } catch (e) {
+        if (e is SocketException || e is TimeoutException) {
+          debugPrint('⚠️ Network failure on $contextLabel (Attempt $attempt/$maxRetries): $e');
+          if (attempt >= maxRetries) {
+            return _handleError(e, contextLabel);
+          }
+          await Future.delayed(Duration(milliseconds: 500 * attempt));
+          continue; // Retry
+        }
+        // Non-network errors are thrown immediately
+        return _handleError(e, contextLabel);
+      }
+    }
+  }
+
   Future<http.Response> _get(String path) async {
     final url = await baseUrl;
-    return _client.get(Uri.parse('$url$path')).timeout(AppDurations.httpTimeout);
+    return await _requestWithRetry(
+        () => _client.get(Uri.parse('$url$path'), headers: const {'Content-Type': 'application/json'}), 'GET $path');
   }
 
   Future<http.Response> _post(String path, Map<String, dynamic> body) async {
     final url = await baseUrl;
-    return _client
-        .post(
-          Uri.parse('$url$path'),
-          headers: const {'Content-Type': 'application/json'},
-          body: json.encode(body),
-        )
-        .timeout(AppDurations.httpTimeout);
+    return await _requestWithRetry(
+        () => _client.post(Uri.parse('$url$path'),
+            headers: const {'Content-Type': 'application/json'},
+            body: json.encode(body)),
+        'POST $path');
   }
 
   Future<http.Response> _put(String path, Map<String, dynamic> body) async {
     final url = await baseUrl;
-    return _client
-        .put(
-          Uri.parse('$url$path'),
-          headers: const {'Content-Type': 'application/json'},
-          body: json.encode(body),
-        )
-        .timeout(AppDurations.httpTimeout);
+    return await _requestWithRetry(
+        () => _client.put(Uri.parse('$url$path'),
+            headers: const {'Content-Type': 'application/json'},
+            body: json.encode(body)),
+        'PUT $path');
   }
 
   Future<http.Response> _delete(String path) async {
     final url = await baseUrl;
-    return _client
-        .delete(Uri.parse('$url$path'))
-        .timeout(AppDurations.httpTimeout);
+    return await _requestWithRetry(
+        () => _client.delete(Uri.parse('$url$path'), headers: const {'Content-Type': 'application/json'}), 'DELETE $path');
+  }
+
+  http.Response _handleError(dynamic e, String contextLabel) {
+    debugPrint('🚨 ApiService Final Error [$contextLabel]: $e');
+    if (e is SocketException) {
+      throw Exception('Server Unreachable. Please check your network connection.');
+    } else if (e is TimeoutException) {
+      throw Exception('Request timed out. The server might be busy or unreachable.');
+    }
+    throw Exception('Unexpected error during $contextLabel: $e');
   }
 
   // ─── Menu ──────────────────────────────────────────────────────────────────

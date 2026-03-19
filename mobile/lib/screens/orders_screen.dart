@@ -23,6 +23,7 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   final ApiService api = ApiService();
   bool isLoading = true;
+  String? errorMessage;
   List<Order> orders = [];
   StreamSubscription? _socketSub;
 
@@ -46,7 +47,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Future<void> loadOrders({bool silent = false}) async {
-    if (!silent) setState(() => isLoading = true);
+    if (!silent) setState(() { isLoading = true; errorMessage = null; });
     try {
       final fetchedOrders = await api.fetchOrders();
       if (!mounted) return;
@@ -58,14 +59,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
         );
         orders = fetchedOrders;
         isLoading = false;
+        errorMessage = null;
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => isLoading = false);
-      if (!silent) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to load orders: $e')));
+      setState(() {
+        isLoading = false;
+        errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+      // Optionally show a snackbar if we already have data but background refresh fails
+      if (!silent && orders.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Update failed: $errorMessage'),
+            backgroundColor: AppColors.dangerAlt,
+          ),
+        );
       }
     }
   }
@@ -180,13 +189,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xDD0A0A0A),
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xDD0A0A0A)
+                        : Colors.white.withValues(alpha: 0.95),
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(28),
                     ),
                     border: Border(
-                      top: BorderSide(color: Color(0x33FFFFFF), width: 0.5),
+                      top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
                     ),
                   ),
                   child: Column(
@@ -197,7 +208,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: Theme.of(context).dividerColor,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -517,13 +528,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
-              title: const Text(
+              title: Text(
                 'Orders',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
-                  color: Colors.white,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
                 ),
               ),
               background: ClipRect(
@@ -551,11 +562,56 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
           if (isLoading)
             const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CircularProgressIndicator(color: Colors.white)),
+            )
+          else if (errorMessage != null && orders.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off_rounded, size: 64, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3)),
+                    const SizedBox(height: 24),
+                    Text('Connection Interrupted', 
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: Theme.of(context).textTheme.displayLarge?.color),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(errorMessage ?? 'Unknown error occurred.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.4),
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: loadOrders,
+                      icon: const Icon(Icons.refresh_rounded, size: 20),
+                      label: const Text('Retry Connection'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.orangeAlt.withValues(alpha: 0.15),
+                        foregroundColor: AppColors.orangeAlt,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        side: BorderSide(color: AppColors.orangeAlt.withValues(alpha: 0.3)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             )
           else if (orders.isEmpty)
-            const SliverFillRemaining(
-              child: Center(child: Text('No orders found')),
+             SliverFillRemaining( // Empty state with theme-aware colors
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.receipt_long_rounded, size: 64, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.15)),
+                    const SizedBox(height: 16),
+                    const Text('No orders yet', style: TextStyle(color: AppColors.muted, fontSize: 16, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
             )
           else
             SliverPadding(
