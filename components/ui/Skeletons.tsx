@@ -16,7 +16,19 @@ const style = `
 }
 `
 
-function Bar({ w = '100%', h = 16, mb = 0, r = 6 }: { w?: string | number; h?: number; mb?: number; r?: number }) {
+function Bar({
+  w = '100%',
+  h = 16,
+  mb = 0,
+  r = 6,
+  style: customStyle,
+}: {
+  w?: string | number
+  h?: number
+  mb?: number
+  r?: number
+  style?: React.CSSProperties
+}) {
   return (
     <div
       style={{
@@ -26,6 +38,7 @@ function Bar({ w = '100%', h = 16, mb = 0, r = 6 }: { w?: string | number; h?: n
         marginBottom: mb,
         borderRadius: r,
         flexShrink: 0,
+        ...customStyle,
       }}
     />
   )
