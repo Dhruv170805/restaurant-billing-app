@@ -9,6 +9,7 @@ import '../models/order.dart';
 import '../providers/pos_provider.dart';
 import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
+import '../widgets/skeleton_loader.dart';
 
 /// Kitchen Display System Screen
 /// Shows PENDING orders sorted by age (oldest first).
@@ -193,9 +194,7 @@ class _KDSScreenState extends State<KDSScreen> {
           ),
 
           if (_isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const SkeletonKDSGrid()
           else if (_orders.isEmpty)
             SliverFillRemaining(
               child: Center(

@@ -11,6 +11,7 @@ import '../providers/pos_provider.dart';
 import 'pos_screen.dart';
 import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
+import '../widgets/skeleton_loader.dart';
 
 class DashboardScreen extends StatefulWidget {
   final ApiService? api;
@@ -33,8 +34,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     api = widget.api ?? ApiService();
-    loadDashboard();
-    
+    _loadStaleDataThenRefresh();
+
     // Listen for real-time updates
     _socketSub = SocketService().eventStream.listen((event) {
       if (mounted) loadDashboard(silent: true);
@@ -44,6 +45,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
+  }
+
+  Future<void> _loadStaleDataThenRefresh() async {
+    final staleSettings = await api.fetchSettingsFromDisk();
+    if (staleSettings != null && mounted) {
+      Provider.of<PosProvider>(context, listen: false).setSettings(staleSettings);
+      setState(() {
+        settings = staleSettings;
+        isLoading = false;
+      });
+      loadDashboard(silent: true);
+    } else {
+      loadDashboard();
+    }
   }
 
   @override
@@ -225,8 +240,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
 
           if (isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppColors.orangeAlt)),
+            SliverFillRemaining(
+              child: SkeletonTableGrid(
+                count: (settings['tableCount'] ?? 10) as int,
+              ),
             )
           else if (errorMessage != null && activeOrders.isEmpty)
              SliverFillRemaining(

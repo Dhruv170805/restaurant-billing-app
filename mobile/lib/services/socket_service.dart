@@ -21,7 +21,7 @@ class SocketService {
   Future<void> init() async {
     if (_socket != null) return;
 
-    final baseUrl = await ApiService().webUrl;
+    final baseUrl = ApiService().webUrl;
     
     _socket = io.io(
       baseUrl,

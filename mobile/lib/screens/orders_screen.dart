@@ -12,6 +12,7 @@ import '../providers/pos_provider.dart';
 import 'pos_screen.dart';
 import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
+import '../widgets/skeleton_loader.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -561,9 +562,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
 
           if (isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: Colors.white)),
-            )
+            const SkeletonOrderList()
           else if (errorMessage != null && orders.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,

@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 import 'providers/pos_provider.dart';
 import 'screens/main_layout.dart';
 import 'services/socket_service.dart';
+import 'services/api_service.dart';
 import 'utils/app_colors.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
+  // Keep native splash on screen while we initialize
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: binding);
+
   await dotenv.load(fileName: ".env");
-  
-  // Start real-time sync service
-  SocketService().init();
+
+  // Run heavy async init tasks in parallel
+  await Future.wait([
+    _warmUpCache(),
+    Future(() => SocketService().init()),
+  ]);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -21,12 +28,31 @@ void main() async {
       statusBarIconBrightness: Brightness.light,
     ),
   );
+
+  // Remove native splash — Flutter first frame is ready
+  FlutterNativeSplash.remove();
+
   runApp(
     MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => PosProvider())],
       child: const RestaurantBillingApp(),
     ),
   );
+}
+
+/// Pre-warm the disk cache layer so screens load with stale data instantly.
+Future<void> _warmUpCache() async {
+  try {
+    final api = ApiService();
+    // Fire all three cache reads in parallel — they're disk reads, very fast
+    await Future.wait([
+      api.fetchMenuItemsFromDisk(),
+      api.fetchSettingsFromDisk(),
+      api.fetchDashboardStatsFromDisk(),
+    ]);
+  } catch (_) {
+    // Cache warmup failure is non-fatal
+  }
 }
 
 class RestaurantBillingApp extends StatelessWidget {

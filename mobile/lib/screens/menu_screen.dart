@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../models/menu_item.dart';
 import '../providers/pos_provider.dart';
 import '../utils/app_colors.dart';
+import '../widgets/skeleton_loader.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -24,11 +25,25 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   void initState() {
     super.initState();
-    loadMenu();
+    _loadStaleThenRefresh();
   }
 
-  Future<void> loadMenu() async {
-    setState(() => isLoading = true);
+  Future<void> _loadStaleThenRefresh() async {
+    final stale = await api.fetchMenuItemsFromDisk();
+    if (stale != null && mounted) {
+      setState(() {
+        menuItems = stale;
+        isLoading = false;
+      });
+      // Background refresh
+      loadMenu(silent: true);
+    } else {
+      loadMenu();
+    }
+  }
+
+  Future<void> loadMenu({bool silent = false}) async {
+    if (!silent) setState(() => isLoading = true);
     try {
       final items = await api.fetchMenuItems();
       if (!mounted) return;
@@ -493,9 +508,7 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
 
           if (isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const SkeletonMenuList()
           else if (filtered.isEmpty)
             SliverFillRemaining(
               child: Center(

@@ -1,0 +1,27 @@
+flutter_native_splash:
+  # Background color matches the app's dark scaffold
+  color: "#000000"
+  color_dark: "#000000"
+
+  # App icon (centered on splash)
+  image: assets/icon/app_icon.png
+  image_dark: assets/icon/app_icon.png
+
+  # Android 12+ adaptive icon support
+  android_12:
+    image: assets/icon/app_icon.png
+    color: "#000000"
+    image_dark: assets/icon/app_icon.png
+    color_dark: "#000000"
+    icon_background_color: "#1A1A1A"
+    icon_background_color_dark: "#1A1A1A"
+
+  # iOS specific
+  ios_content_mode: center
+
+  # On web (already handled by index.html, skip)
+  web: false
+
+  # After splash, remove it immediately when Flutter is ready
+  android_gravity: center
+  fullscreen: true

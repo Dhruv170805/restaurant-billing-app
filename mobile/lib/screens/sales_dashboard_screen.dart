@@ -12,6 +12,7 @@ import '../utils/pdf_generator.dart';
 import '../models/order.dart';
 import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
+import '../widgets/skeleton_loader.dart';
 
 class SalesDashboardScreen extends StatefulWidget {
   const SalesDashboardScreen({super.key});
@@ -30,14 +31,31 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    loadStats();
-    
+    _loadStaleDataThenRefresh();
+
     // Listen for real-time sales updates
     _socketSub = SocketService().eventStream.listen((event) {
       if (event['event'] == SocketEvent.orderUpdated) {
         if (mounted) loadStats(silent: true);
       }
     });
+  }
+
+  /// Show disk-cached data immediately (instant UI), then refresh in background.
+  Future<void> _loadStaleDataThenRefresh() async {
+    // 1. Try disk cache first — shows immediately without network
+    final stale = await api.fetchDashboardStatsFromDisk();
+    if (stale != null && mounted) {
+      setState(() {
+        stats = stale;
+        isLoading = false;
+      });
+      // 2. Silently refresh from network
+      loadStats(silent: true);
+    } else {
+      // 3. No cache — normal loading flow
+      loadStats();
+    }
   }
 
   @override
@@ -523,9 +541,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
           ),
 
           if (isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppColors.orangeAlt)),
-            )
+            const SkeletonSalesDashboard()
           else if (errorMessage != null && stats.isEmpty)
              SliverFillRemaining(
               hasScrollBody: false,
