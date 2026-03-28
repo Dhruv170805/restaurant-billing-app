@@ -4,58 +4,32 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { fmtPrice as formatPrice } from '@/lib/format'
+import { useSettings } from '@/hooks/useData'
+import { OrderDetailSkeleton } from '@/components/ui/Skeletons'
+import useSWR from 'swr'
+import { fetcher } from '@/lib/fetcher'
 
 import type { AppSettings, Order } from '@/lib/db'
 import type { DbOrderItem } from '@/lib/db/schema'
 
 export default function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const [order, setOrder] = useState<Order | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [settings, setSettings] = useState<AppSettings | null>(null)
+  const resolvedParams = use(params)
+  const { data: order, isLoading: orderLoading } = useSWR<Order>(`/api/orders/${resolvedParams.id}`, fetcher, { revalidateOnFocus: false, dedupingInterval: 5000 })
+  const { settings, isLoading: settingsLoading } = useSettings()
+
   const [selectedPayment, setSelectedPayment] = useState<'CASH' | 'ONLINE' | 'UNPAID' | null>(null)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [customers, setCustomers] = useState<{ name: string, phone: string }[]>([])
 
-  const resolvedParams = use(params)
-
-  useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const res = await fetch(`/api/orders/${resolvedParams.id}`)
-        if (res.ok) {
-          const data = await res.json()
-          setOrder(data)
-        } else {
-          toast.error('Order not found')
-        }
-      } catch (err) {
-        console.error('Failed to load order', err)
-        toast.error('Failed to load order')
-      }
-      setLoading(false)
-    }
-    fetchOrder()
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then(setSettings)
-      .catch(console.error)
-
-    fetch('/api/customers')
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setCustomers(data)
-      })
-      .catch(console.error)
-  }, [resolvedParams.id, router])
+  const { data: customers } = useSWR('/api/customers', fetcher)
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value
     setCustomerName(newName)
 
     // Auto-complete phone if exact match found
-    const match = customers.find(c => c.name.toLowerCase() === newName.toLowerCase())
+    const match = (customers || []).find((c: any) => c.name.toLowerCase() === newName.toLowerCase())
     if (match && !customerPhone) {
       setCustomerPhone(match.phone)
     }
@@ -81,12 +55,8 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         body: JSON.stringify(payload),
       })
       if (res.ok) {
-        const updated = await res.json()
-        setOrder(updated)
         toast.success(`Order marked as ${newStatus}`)
-        if (newStatus === 'PAID' || newStatus === 'UNPAID') {
-          router.push('/')
-        }
+        router.push('/')
       } else {
         const data = await res.json()
         toast.error(data.error || 'Failed to update order')
@@ -97,12 +67,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
     }
   }
 
-  if (loading)
-    return (
-      <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--foreground-subtle)' }}>
-        Loading order...
-      </div>
-    )
+  if (orderLoading || settingsLoading) return <OrderDetailSkeleton />
 
   if (!order)
     return (
@@ -342,8 +307,8 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
                     required={selectedPayment === 'UNPAID'}
                   />
                   <datalist id="customer-list">
-                    {customers.map((c, i) => (
-                      <option key={i} value={c.name} />
+                    {(customers || []).map((customer: any, i: number) => (
+                      <option key={i} value={customer.name} />
                     ))}
                   </datalist>
                 </div>

@@ -1,5 +1,11 @@
-export const fetcher = (url: string) =>
-  fetch(url, { cache: 'no-store' }).then((res) => {
-    if (!res.ok) throw new Error('API error')
-    return res.json()
+export const fetcher = async (url: string) => {
+  const res = await fetch(url, {
+    headers: { 'Cache-Control': 'no-cache' },
   })
+  if (!res.ok) {
+    const error = new Error('API request failed') as Error & { status: number }
+    error.status = res.status
+    throw error
+  }
+  return res.json()
+}

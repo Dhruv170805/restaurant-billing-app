@@ -2,6 +2,8 @@
 
 import { PageHeader } from '@/components/ui/PageHeader'
 import { fmtPrice as formatPrice } from '@/lib/format'
+import { DashboardSkeleton } from '@/components/ui/Skeletons'
+
 import { useDashboard, useSettings } from '@/hooks/useData'
 import type { Order } from '@/lib/db'
 import {
@@ -111,8 +113,6 @@ function StatCard({ label, value, icon, accent, glow, sub }: StatCardProps) {
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function DashboardPage() {
   const { stats, isLoading: statsLoading } = useDashboard()
   const { settings } = useSettings()
@@ -136,19 +136,7 @@ export default function DashboardPage() {
   const deltaSign = delta >= 0 ? '+' : ''
   const deltaColor = delta >= 0 ? '#22c55e' : '#ef4444'
 
-  if (statsLoading) {
-    return (
-      <div style={{ padding: '4rem', textAlign: 'center' }}>
-        <div style={{
-          width: 48, height: 48, border: '3px solid rgba(255,255,255,0.08)',
-          borderTop: '3px solid #ff6a00', borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem',
-        }} />
-        <p style={{ color: 'var(--foreground-muted)' }}>Loading sales dashboard…</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
-  }
+  if (statsLoading) return <DashboardSkeleton />
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }} id="dashboard-report">

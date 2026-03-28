@@ -5,14 +5,17 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { fmtPrice as formatPrice } from '@/lib/format'
 import { useOrders, useSettings } from '@/hooks/useData'
+import { OrdersSkeleton } from '@/components/ui/Skeletons'
 
-// No need to import Order or AppSettings when not directly instantiating them here
+// ... (comment)
 
 export default function OrdersPage() {
   const { orders, isLoading: ordersLoading } = useOrders()
   const { settings } = useSettings()
 
   const fmtPrice = (amount: number) => formatPrice(amount, settings)
+
+  if (ordersLoading) return <OrdersSkeleton />
 
   return (
     <div className="flex flex-col gap-6">
@@ -27,11 +30,7 @@ export default function OrdersPage() {
       />
 
       <div className="card">
-        {ordersLoading ? (
-          <p style={{ color: 'var(--foreground-subtle)', padding: '2rem', textAlign: 'center' }}>
-            Loading orders...
-          </p>
-        ) : orders.length === 0 ? (
+        {orders.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--foreground-subtle)' }}>
             <p style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📦</p>
             <p>No orders yet. Create one from the POS terminal.</p>
