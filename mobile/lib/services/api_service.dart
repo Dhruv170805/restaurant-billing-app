@@ -21,27 +21,46 @@ class _CacheKeys {
 
 class AppConfig {
   /// Remote server URL provided via --dart-define=API_URL=https://...
-  /// If provided, this takes precedence over local IP settings.
   static const String apiUrl = String.fromEnvironment('API_URL');
 
-  static String get baseConfigUrl => dotenv.env['API_BASE_URL'] ?? '';
-  static String get defaultPort => dotenv.env['PORT'] ?? '3000';
+  static String get baseConfigUrl => (dotenv.env['API_BASE_URL'] ?? '').trim();
+  static String get defaultPort => (dotenv.env['PORT'] ?? '3000').trim();
   static const String apiPath = '/api';
 
   static bool get isProduction => apiUrl.isNotEmpty;
 
   String get webUrl {
-    if (isProduction) return apiUrl;
+    // 1. Prioritize --dart-define API_URL (Production)
+    if (isProduction) {
+      return apiUrl.endsWith('/') ? apiUrl.substring(0, apiUrl.length -1) : apiUrl;
+    }
 
+    // 2. Fallback to .env configuration
     String base = baseConfigUrl;
     if (base.isEmpty) {
-      base = 'http://127.0.0.1:${AppConfig.defaultPort}';
-    } else if (!base.startsWith('http')) {
-      base = 'http://$base:${AppConfig.defaultPort}';
+      base = 'http://127.0.0.1';
     }
-    return base;
+
+    // Ensure protocol exists
+    if (!base.startsWith('http')) {
+      base = 'http://$base';
+    }
+
+    // 3. Port Handling (Avoid appending :80, :443, or :0)
+    final port = defaultPort;
+
+    
+    // If the base URL already has a port, use it. 
+    // Otherwise, append defaultPort if it's not a standard web port.
+    if (!base.contains(':', base.indexOf('//') + 2) && 
+        port != '80' && port != '443' && port != '0' && port.isNotEmpty) {
+      return '$base:$port';
+    }
+
+    return base.endsWith('/') ? base.substring(0, base.length -1) : base;
   }
 }
+
 
 class ApiService {
   // ─── Singleton Pattern ───────────────────────────────────────────────────

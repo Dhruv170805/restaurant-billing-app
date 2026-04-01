@@ -41,11 +41,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) loadDashboard(silent: true);
     });
 
-    // Redraw timers every 30s so elapsed time updates
+    // Smart Refresh: Updates age strings AND polls if WebSocket is disabled
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      
+      // 1. Refresh human-readable "elapsed" strings (UI only)
+      setState(() {});
+
+      // 2. Poll the server if real-time updates are unavailable (e.g. on Vercel)
+      if (SocketService().isDisabled || !SocketService().isConnected) {
+        debugPrint('🔄 WebSocket unavailable, performing background poll...');
+        loadDashboard(silent: true);
+      }
     });
   }
+
 
   Future<void> _loadStaleDataThenRefresh() async {
     final staleSettings = await api.fetchSettingsFromDisk();
@@ -296,46 +306,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final tableOrder = activeOrders
                       .where((o) => o.tableNumber == tableNumber)
                       .firstOrNull;
-                  return _TableCard(
-                    tableNumber: tableNumber,
-                    order: tableOrder,
-                    currency: currency,
-                    heatColor: _heatColor(tableOrder),
-                    elapsed: tableOrder != null ? _elapsed(tableOrder) : null,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => POSScreen(
-                          tableNumber: tableNumber,
-                          orderId: tableOrder?.id,
-                        ),
-                      ),
-                    ).then((_) => loadDashboard()),
-                    onQuickAction: (action) async {
-                      if (action == 'pos') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => POSScreen(
-                              tableNumber: tableNumber,
-                              orderId: tableOrder?.id,
-                            ),
+                  return RepaintBoundary(
+                    child: _TableCard(
+                      tableNumber: tableNumber,
+                      order: tableOrder,
+                      currency: currency,
+                      heatColor: _heatColor(tableOrder),
+                      elapsed: tableOrder != null ? _elapsed(tableOrder) : null,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => POSScreen(
+                            tableNumber: tableNumber,
+                            orderId: tableOrder?.id,
                           ),
-                        ).then((_) => loadDashboard());
-                      } else if (action == 'settle' && tableOrder != null) {
-                        await ApiService().updateOrderStatus(
-                          tableOrder.id,
-                          'PAID',
-                        );
-                        loadDashboard();
-                      } else if (action == 'cancel' && tableOrder != null) {
-                        await ApiService().updateOrderStatus(
-                          tableOrder.id,
-                          'CANCELLED',
-                        );
-                        loadDashboard();
-                      }
-                    },
+                        ),
+                      ).then((_) => loadDashboard()),
+                      onQuickAction: (action) async {
+                        if (action == 'pos') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => POSScreen(
+                                tableNumber: tableNumber,
+                                orderId: tableOrder?.id,
+                              ),
+                            ),
+                          ).then((_) => loadDashboard());
+                        } else if (action == 'settle' && tableOrder != null) {
+                          await ApiService().updateOrderStatus(
+                            tableOrder.id,
+                            'PAID',
+                          );
+                          loadDashboard();
+                        } else if (action == 'cancel' && tableOrder != null) {
+                          await ApiService().updateOrderStatus(
+                            tableOrder.id,
+                            'CANCELLED',
+                          );
+                          loadDashboard();
+                        }
+                      },
+                    ),
                   );
                 }, childCount: tableCount),
               ),
@@ -421,160 +433,183 @@ class _TableCardState extends State<_TableCard>
         scale: _pressed ? 0.95 : 1.0,
         duration: const Duration(milliseconds: 80),
         curve: Curves.easeOut,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 400),
-              decoration: BoxDecoration(
-                // ── HEATMAP gradient based on age ─────────────────────
-                gradient: isOccupied
-                    ? LinearGradient(
-                        colors: [
-                          glowColor.withValues(alpha: 0.25),
-                          glowColor.withValues(alpha: 0.08),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : LinearGradient(
-                        colors: [
-                          Theme.of(context).cardTheme.color ?? Colors.transparent,
-                          Theme.of(context).cardTheme.color ?? Colors.transparent,
-                        ],
-                      ),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: isOccupied
-                      ? glowColor.withValues(alpha: 0.45)
-                      : Theme.of(context).dividerColor,
-                  width: 0.8,
-                ),
-                boxShadow: isOccupied
-                    ? [
-                        BoxShadow(
-                          color: glowColor.withValues(alpha: 0.20),
-                          blurRadius: 18,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-              ),
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Icon row ────────────────────────────────────────
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: isOccupied
-                              ? glowColor.withValues(alpha: 0.2)
-                              : Theme.of(context).dividerColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          isOccupied
-                              ? Icons.dining_rounded
-                              : Icons.table_restaurant_outlined,
-                          size: 18,
-                          color: isOccupied ? glowColor : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      const Spacer(),
-                      // Status dot (pulsing if occupied)
-                      if (isOccupied)
-                        _PulsingDot(color: glowColor)
-                      else
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).dividerColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          decoration: BoxDecoration(
+            // ── HEATMAP gradient based on age ─────────────────────
+            gradient: isOccupied
+                ? LinearGradient(
+                    colors: [
+                      glowColor.withValues(alpha: 0.25),
+                      glowColor.withValues(alpha: 0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [
+                      Theme.of(context).cardTheme.color?.withValues(alpha: 0.7) ??
+                          const Color(0x1AFFFFFF),
+                      Theme.of(context).cardTheme.color?.withValues(alpha: 0.7) ??
+                          const Color(0x1AFFFFFF),
                     ],
                   ),
-
-                  const Spacer(),
-
-                  // ── Table number ─────────────────────────────────────
-                  Text(
-                    'Table ${widget.tableNumber}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 17,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                      letterSpacing: -0.3,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isOccupied
+                  ? glowColor.withValues(alpha: 0.45)
+                  : Theme.of(context).dividerColor,
+              width: 0.8,
+            ),
+            boxShadow: isOccupied
+                ? [
+                    BoxShadow(
+                      color: glowColor.withValues(alpha: 0.20),
+                      blurRadius: 18,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Icon row ────────────────────────────────────────
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: isOccupied
+                          ? glowColor.withValues(alpha: 0.2)
+                          : Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      isOccupied
+                          ? Icons.dining_rounded
+                          : Icons.table_restaurant_outlined,
+                      size: 18,
+                      color: isOccupied
+                          ? glowColor
+                          : Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.color
+                              ?.withValues(alpha: 0.5),
                     ),
                   ),
-
-                  const SizedBox(height: 3),
-
-                  // ── Amount / Available ───────────────────────────────
-                  if (isOccupied && order != null) ...[
-                    Text(
-                      '${widget.currency}${order.total.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 19,
-                        color: glowColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    // Items count + elapsed time
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.restaurant_outlined,
-                          size: 10,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.45),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '$itemCount item${itemCount == 1 ? '' : 's'}',
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                            fontSize: 11,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.timer_outlined,
-                          size: 10,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.45),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          widget.elapsed ?? '',
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else
-                    Text(
-                      'Available',
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                  const Spacer(),
+                  // Status dot (pulsing if occupied)
+                  if (isOccupied)
+                    _PulsingDot(color: glowColor)
+                  else
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                        shape: BoxShape.circle,
                       ),
                     ),
                 ],
               ),
-            ),
+
+              const Spacer(),
+
+              // ── Table number ─────────────────────────────────────
+              Text(
+                'Table ${widget.tableNumber}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  letterSpacing: -0.3,
+                ),
+              ),
+
+              const SizedBox(height: 3),
+
+              // ── Amount / Available ───────────────────────────────
+              if (isOccupied && order != null) ...[
+                Text(
+                  '${widget.currency}${order.total.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 19,
+                    color: glowColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                // Items count + elapsed time
+                Row(
+                  children: [
+                    Icon(
+                      Icons.restaurant_outlined,
+                      size: 10,
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.color
+                          ?.withValues(alpha: 0.45),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      '$itemCount item${itemCount == 1 ? '' : 's'}',
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withValues(alpha: 0.5),
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.timer_outlined,
+                      size: 10,
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.color
+                          ?.withValues(alpha: 0.45),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      widget.elapsed ?? '',
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withValues(alpha: 0.5),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else
+                Text(
+                  'Available',
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withValues(alpha: 0.5),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
           ),
         ),
       ),
     );
   }
+
 
   void _showQuickActions(BuildContext context) {
     showModalBottomSheet(

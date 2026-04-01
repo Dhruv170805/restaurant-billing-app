@@ -9,6 +9,28 @@ import 'menu_screen.dart';
 import 'settings_screen.dart';
 import '../utils/app_colors.dart';
 
+/// Wraps a screen so PageView keeps it alive in memory after first visit.
+/// This prevents dispose+recreate (and re-fetching data) when switching tabs.
+class _KeepAlivePage extends StatefulWidget {
+  final Widget child;
+  const _KeepAlivePage({required this.child});
+
+  @override
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
+}
+
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
 
@@ -62,20 +84,17 @@ class _MainLayoutState extends State<MainLayout> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       extendBody: true,
-      // PageView enables App Store–style horizontal swipe between tabs
-      body: PageView(
+      // PageView enables App Store–style horizontal swipe between tabs.
+      // keepPage: true + _KeepAlivePage ensures screens stay alive once visited,
+      // preventing unnecessary dispose/recreate and redundant network fetches.
+      body: PageView.builder(
         controller: _pageController,
         onPageChanged: _onPageChanged,
-        // Slight motion feel — not rubber-band, just smooth
         physics: const BouncingScrollPhysics(),
-        children: const [
-          SalesDashboardScreen(),
-          DashboardScreen(),
-          OrdersScreen(),
-          KDSScreen(),
-          MenuScreen(),
-          SettingsScreen(),
-        ],
+        itemCount: 6,
+        itemBuilder: (context, index) {
+          return _KeepAlivePage(child: _buildPage(index));
+        },
       ),
       bottomNavigationBar: Padding(
         padding: EdgeInsets.only(
@@ -83,38 +102,41 @@ class _MainLayoutState extends State<MainLayout> {
           right: 20,
           bottom: bottomPadding + 12,
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(36),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-            child: Container(
-              height: 68,
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xCC000000)
-                    : Colors.white.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(36),
-                border: Border.all(
+        child: RepaintBoundary(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(36),
+            child: BackdropFilter(
+              // Reduced from 30 → 16: halves GPU work on every frame (iOS)
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                height: 68,
+                decoration: BoxDecoration(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0x33444444)
-                      : const Color(0x44FFFFFF),
-                  width: 0.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
+                      ? const Color(0xCC000000)
+                      : Colors.white.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(36),
+                  border: Border.all(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.black.withValues(alpha: 0.5)
-                        : Theme.of(context).shadowColor.withValues(alpha: 0.15),
-                    blurRadius: 30,
-                    offset: const Offset(0, 8),
+                        ? const Color(0x33444444)
+                        : const Color(0x44FFFFFF),
+                    width: 0.5,
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(
-                  _navItems.length,
-                  (index) => _buildNavItem(_navItems[index], index),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black.withValues(alpha: 0.5)
+                          : Theme.of(context).shadowColor.withValues(alpha: 0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(
+                    _navItems.length,
+                    (index) => _buildNavItem(_navItems[index], index),
+                  ),
                 ),
               ),
             ),
@@ -179,6 +201,20 @@ class _MainLayoutState extends State<MainLayout> {
         ),
       ),
     );
+  }
+
+  /// Maps a tab index to its screen widget.
+  /// Called lazily by PageView.builder — only executed when the user first visits a tab.
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0: return const SalesDashboardScreen();
+      case 1: return const DashboardScreen();
+      case 2: return const OrdersScreen();
+      case 3: return const KDSScreen();
+      case 4: return const MenuScreen();
+      case 5: return const SettingsScreen();
+      default: return const SalesDashboardScreen();
+    }
   }
 }
 

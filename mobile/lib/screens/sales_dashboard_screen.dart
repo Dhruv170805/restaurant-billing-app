@@ -636,54 +636,52 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                   const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0x14FFFFFF),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.borderMid,
-                            width: 0.5,
-                          ),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0x1AFFFFFF),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.borderMid,
+                          width: 0.5,
                         ),
-                        child: Column(
-                          children: [
-                            // Donut chart
-                            _PaymentDonut(
+                      ),
+                      child: Column(
+                        children: [
+                          RepaintBoundary(
+                            child: _PaymentDonut(
                               cash: (stats['cashRevenue'] ?? 0).toDouble(),
                               online: (stats['onlineRevenue'] ?? 0).toDouble(),
                               currency: currency,
                             ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildPaymentTile(
-                                    'Cash',
-                                    '$currency${(stats['cashRevenue'] ?? 0).toStringAsFixed(2)}',
-                                    Icons.payments_rounded,
-                                    AppColors.greenAlt,
-                                  ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildPaymentTile(
+                                  'Cash',
+                                  '$currency${(stats['cashRevenue'] ?? 0).toStringAsFixed(2)}',
+                                  Icons.payments_rounded,
+                                  AppColors.greenAlt,
                                 ),
-                                Container(
-                                  width: 0.5,
-                                  height: 48,
-                                  color: AppColors.borderMid,
+                              ),
+                              Container(
+                                width: 0.5,
+                                height: 48,
+                                color: AppColors.borderMid,
+                              ),
+                              Expanded(
+                                child: _buildPaymentTile(
+                                  'Online',
+                                  '$currency${(stats['onlineRevenue'] ?? 0).toStringAsFixed(2)}',
+                                  Icons.smartphone_rounded,
+                                  AppColors.blue,
                                 ),
-                                Expanded(
-                                  child: _buildPaymentTile(
-                                    'Online',
-                                    '$currency${(stats['onlineRevenue'] ?? 0).toStringAsFixed(2)}',
-                                    Icons.smartphone_rounded,
-                                    AppColors.blue,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -699,13 +697,15 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _HourlyRevenueChart(
-                    hourlyData:
-                        (stats['hourlyRevenue'] as List?)
-                            ?.map((e) => (e as num).toDouble())
-                            .toList() ??
-                        const [],
-                    currency: currency,
+                  RepaintBoundary(
+                    child: _HourlyRevenueChart(
+                      hourlyData:
+                          (stats['hourlyRevenue'] as List?)
+                              ?.map((e) => (e as num).toDouble())
+                              .toList() ??
+                          const [],
+                      currency: currency,
+                    ),
                   ),
 
                   // ─── Top Selling Dishes ────────────────────────────
@@ -719,11 +719,13 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _TopSellingChart(
-                    topItems: List<Map<String, dynamic>>.from(
-                      stats['topItems'] ?? [],
+                  RepaintBoundary(
+                    child: _TopSellingChart(
+                      topItems: List<Map<String, dynamic>>.from(
+                        stats['topItems'] ?? [],
+                      ),
+                      currency: currency,
                     ),
-                    currency: currency,
                   ),
 
                   // ─── AI Revenue Prediction ─────────────────────────

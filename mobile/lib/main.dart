@@ -10,18 +10,18 @@ import 'services/api_service.dart';
 import 'utils/app_colors.dart';
 
 void main() async {
-  // Keep native splash on screen while we initialize
+  // 1. Initialize Flutter and preserve splash immediately
   final binding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
-  await dotenv.load(fileName: ".env");
+  // 2. Load essential env config (minimal block)
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('Error loading .env: $e');
+  }
 
-  // Run heavy async init tasks in parallel
-  await Future.wait([
-    _warmUpCache(),
-    Future(() => SocketService().init()),
-  ]);
-
+  // 3. UI configuration
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -29,16 +29,34 @@ void main() async {
     ),
   );
 
-  // Remove native splash — Flutter first frame is ready
-  FlutterNativeSplash.remove();
-
+  // 4. Start the app ASAP
   runApp(
     MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => PosProvider())],
       child: const RestaurantBillingApp(),
     ),
   );
+
+  // 5. Run non-critical background tasks without blocking
+  _runBackgroundTasks();
 }
+
+/// Tasks that can run in background without blocking the first frame.
+Future<void> _runBackgroundTasks() async {
+  // We remove splash screen immediately after runApp starts
+  // to ensure the user sees the UI even if network is slow.
+  FlutterNativeSplash.remove();
+
+  // 1. Warm up cache (Async Future)
+  await _warmUpCache();
+  
+  // 2. Initialize Socket (Non-blocking call)
+  SocketService().init();
+}
+
+
+
+
 
 /// Pre-warm the disk cache layer so screens load with stale data instantly.
 Future<void> _warmUpCache() async {

@@ -14,46 +14,92 @@ class SocketService {
   SocketService._internal();
 
   io.Socket? _socket;
+  bool _isDisabled = false;
+  bool _isConnected = false;
+  int _retryCount = 0;
+  static const int _maxRetries = 3;
+
   final _eventController = StreamController<Map<String, dynamic>>.broadcast();
 
   Stream<Map<String, dynamic>> get eventStream => _eventController.stream;
+  bool get isConnected => _isConnected;
+  bool get isDisabled => _isDisabled;
 
-  Future<void> init() async {
-    if (_socket != null) return;
+  /// Fire and forget initialization to prevent blocking startup.
+  void init() {
+    if (_socket != null || _isDisabled) return;
+    
+    // Phase 17: Delay socket init by 2s to ensure the main UI thread is 
+    // completely free for initial rendering and user interaction.
+    Future.delayed(const Duration(seconds: 2), () {
+      _connect();
+    });
+  }
 
-    final baseUrl = ApiService().webUrl;
+  void _connect() {
+    String baseUrl = ApiService().webUrl;
+    
+    // Phase 18: Explicitly force :443 for https if port is missing.
+    // This squashes the underlying engine's tendency to default to :0.
+    if (baseUrl.startsWith('https://') && !baseUrl.contains(':', 8)) {
+      baseUrl = '$baseUrl:443';
+    } else if (baseUrl.startsWith('http://') && !baseUrl.contains(':', 7)) {
+      baseUrl = '$baseUrl:80';
+    }
+
+    debugPrint('🔌 Attempting WebSocket connection to: $baseUrl');
     
     _socket = io.io(
       baseUrl,
       io.OptionBuilder()
-          .setTransports(['websocket']) // Use WebSocket only for performance
-          .setPath('/api/socket/io')    // Match backend path
+          .setTransports(['websocket'])
+          .setPath('/api/socket/io')
           .enableAutoConnect()
+          .setReconnectionDelay(5000)
+          .setReconnectionAttempts(_maxRetries)
           .build(),
     );
 
+
     _socket!.onConnect((_) {
+      _isConnected = true;
+      _retryCount = 0;
       debugPrint('✅ Connected to WebSocket');
     });
 
     _socket!.onDisconnect((_) {
+      _isConnected = false;
       debugPrint('❌ Disconnected from WebSocket');
     });
 
     _socket!.onConnectError((err) {
-      debugPrint('⚠️ WebSocket Connection Error: $err');
+      _retryCount++;
+      debugPrint('⚠️ WebSocket Connection Error (Attempt $_retryCount): $err');
+      
+      // If we get a 404 or have failed too many times, assume infrastructure is incompatible (Vercel)
+      if (err.toString().contains('404') || _retryCount >= _maxRetries) {
+        _disableSocket('Infrastructure incompatible or unreachable');
+      }
     });
 
     // Listen for core POS events
     _socket!.on('ORDER_UPDATED', (data) {
-      debugPrint('🔔 Order Update Received: $data');
       _eventController.add({'event': SocketEvent.orderUpdated, 'data': data});
     });
 
     _socket!.on('SETTINGS_UPDATED', (data) {
-      debugPrint('🔔 Settings Update Received: $data');
       _eventController.add({'event': SocketEvent.settingsUpdated, 'data': data});
     });
+  }
+
+  void _disableSocket(String reason) {
+    if (_isDisabled) return;
+    _isDisabled = true;
+    _isConnected = false;
+    debugPrint('🚫 Disabling WebSocket Service: $reason');
+    _socket?.disconnect();
+    _socket?.dispose();
+    _socket = null;
   }
 
   void dispose() {
@@ -62,3 +108,4 @@ class SocketService {
     _eventController.close();
   }
 }
+
