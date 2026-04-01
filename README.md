@@ -21,12 +21,6 @@ Nexus POS is a **distributed, low-latency ecosystem** engineered for high-throug
 ![Tables View](./public/assets/docs/tables_view.png)
 > **Engineering Insight**: Every table card is a reactive node. State changes (Occupied -> Paid) are pushed via WebSocket to all connected mobile and web clients instantly.
 
-### 3. Frontier UI Concepts (Mobile & KDS)
-| POS Terminal (Mobile) | Kitchen Display (Tablet) |
-| :---: | :---: |
-| ![POS Concept](./public/assets/docs/pos_mobile_concept.png) | ![KDS Concept](./public/assets/docs/kds_tablet_concept.png) |
-| *High-frequency cart management* | *Ruggedized preparation workflow* |
-
 ---
 
 ## 🏛️ System Architecture
