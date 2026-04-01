@@ -1,78 +1,79 @@
-# Site Reliability Engineering (SRE) Runbook
+# 🛡️ Site Reliability Engineering (SRE) Runbook
 
-**Restaurant Billing & POS System**
+## High-Availability Operations Guide — Nexus POS Ecosystem
 
-This document serves as the operational runbook for deploying, monitoring, backing up, and troubleshooting the production Restaurant Billing application across Web and Mobile.
+This document defines the operational standards and disaster recovery protocols for the Nexus POS environment. Our goal is to ensure **99.9% availability** of core billing services during peak restaurant floor hours.
 
 ---
 
-## 1. Architecture Overview
+## 🏛️ 1. Infrastructure Architecture
 
-- **Web Application**: Next.js 15 (App Router). Deployed on Vercel Serverless Edge.
-- **Mobile Application**: Native Flutter App (Android/iOS).
-- **Database Layer**: MongoDB Atlas Cloud Cluster.
-- **Hosting Strategy**: Vercel for Web API. Mobile requires APK/IPA distribution.
+The system is a distributed hybrid architecture:
+- **Global Edge**: Next.js 15 App Router deployed on Vercel.
+- **Real-time Gateway**: Node.js WebSocket engine (Socket.io).
+- **Data Persistence**: MongoDB Atlas Cluster (sharded with replica sets).
+- **Edge Client**: Native Flutter mobile fleet (iOS/Android).
 
-## 2. Production Deployment
+---
 
-### Web App (Vercel)
+## 💾 2. Data Persistence & Lifecycle
 
-Next.js functions are mapped to Vercel Serverless compute. Pushing to the `main` GitHub branch triggers automatic rolling deployments via Vercel CI/CD.
+### 2.1 7-Day Auto-Purge (TTL) Strategy
+To maintain O(1) performance in a high-throughput kitchen, Nexus POS implements a **partial TTL (Time-To-Live) index** for data pruning. This keeps the active data set small and fast while ensuring historical records are archived or deleted.
 
-### Mobile App (Flutter)
-
-To build the production Android app:
-
-```bash
-cd mobile
-flutter build apk --release
+```javascript
+// lib/db/init.ts - TTL implementation
+db.collection('orders').createIndex(
+  { createdAt: 1 },
+  {
+    expireAfterSeconds: 7 * 24 * 60 * 60, // 7 days
+    partialFilterExpression: { status: 'PAID' },
+    name: 'ttl_paid_orders_7_days'
+  }
+);
 ```
 
-The resulting file will be at `mobile/build/app/outputs/flutter-apk/app-release.apk`.
-
-## 3. Database Backups & Disaster Recovery (MongoDB)
-
-### Automated / Manual Backups (mongodump)
-
-To safely backup the database from a running MongoDB container:
-
+### 2.2 Manual Backups (mongodump)
 ```bash
-docker exec $(docker-compose ps -q db) mongodump --uri="mongodb://localhost:27017/restaurant_db" --archive > backup_$(date +%F).archive
+# Production Cluster Snapshot
+mongodump --uri="mongodb+srv://<user>:<pwd>@cluster0.abc.mongodb.net/restaurant_db" --archive > full_backup_$(date +%F).archive
 ```
 
-### Restoring from Backup
+---
 
-To restore the database from an archive:
+## 🆘 3. Global Incident Response Matrix
 
-```bash
-cat backup.archive | docker exec -i $(docker-compose ps -q db) mongorestore --archive
-```
+| Symptom | Severity | Potential Cause | Resolution |
+| :--- | :--- | :--- | :--- |
+| **Mobile Timeout** | High | Network jitter or missing HTTP prefix | 1. Verify `API_BASE_URL` in `.env`. 2. Check corporate firewall whitelisting. |
+| **DB Connection Error** | Critical | Atlas IP whitelist block | 1. Whitelist Vercel outbound IPs in Atlas. 2. Verify `MONGODB_URI` string. |
+| **WebSocket Failure** | Medium | Load balancer connection termination | 1. Ensure `transports: ['websocket']` is enforced. 2. Verify Vercel WebSocket limit. |
 
-## 4. Monitoring & Alerting
+---
 
-### Health Checks
+## 📊 4. Monitoring & SLOs
 
-The application relies on `/api/health` returning `200 OK`. Set up an external Uptime monitor pointing to:
-`https://restaurant-billing-app-self.vercel.app/api/health`
+- **Availability**: 99.9% target. Point monitors to `PROD_URL/api/health`.
+- **P95 Latency**: < 120ms for complex order placements.
+- **Sync Jitter**: < 20ms for WebSocket state propagation.
 
-### Inspecting Logs
+---
 
-- **Application Logs**: Accessible inside the Vercel Dashboard -> Logs tab.
-- **Database Logs**: Accessible inside MongoDB Atlas.
+## 🔒 5. Environmental Security Checklist
 
-### 🔴 Symptom: Mobile App "TimeoutException"
+| Variable | Priority | Description |
+| :--- | :--- | :--- |
+| `MONGODB_URI` | Critical | Primary connection string for Atlas cluster. |
+| `NODE_ENV` | High | Set to `production` in Vercel to enable edge optimizations. |
+| `OWNER_PHONE` | High | WhatsApp Business number for CRM deep-linking. |
+| `API_BASE_URL` | Critical | (Mobile) Target for the Flutter network layer. |
 
-**Cause**: The phone cannot reach the Vercel edge runtime, or the `.env` variable is missing HTTP strings.
-**Resolution**:
-1. Check device cellular/Wi-Fi connection.
-2. Verify `API_BASE_URL` in `/mobile/.env` is strictly configured to the `.vercel.app` domain.
+---
 
-### 🔴 Symptom: MongoDB Connection Failed
+## 🚀 6. Scalability Matrix
 
-**Cause**: `MONGODB_URI` environment variable is incorrect or the IP address hasn't been allowed in MongoDB Atlas.
-**Resolution**:
-1. Verify the connection string in the Vercel Dashboard Settings.
-2. Check network connectivity and ensure Vercel outbound IPs are whitelisted in MongoDB Atlas.
+- **Vertical**: Managed by Vercel Serverless (auto-scaling compute).
+- **Horizontal**: MongoDB Atlas handles sharding and scaling on demand.
+- **Edge**: Next.js 15 uses Partial Prerendering (PPR) for maximum responsiveness.
 
-- **Vertical Scaling**: Managed automatically by Vercel Edge compute.
-- **Horizontal Scaling**: Next.js is stateless and scales natively to Vercel serverless workers. MongoDB handles scaling via sharded Replica Sets inside Atlas.
+**Nexus POS — Stability is Efficiency.**

@@ -1,68 +1,127 @@
-# 🚀 NEXUS POS: Enterprise Restaurant Engine
+# 🚀 NEXUS POS: Frontier Restaurant Engine
 
-## High-Performance, Real-Time Billing & Operations Ecosystem
+## High-Performance, Real-time Operational Ecosystem
 
-[![Tech Stack](https://img.shields.io/badge/Stack-Next.js%20|%20Node.js%20|%20Flutter-blue.svg)](https://img.shields.io/badge/Stack-Next.js%20|%20Node.js%20|%20Flutter-blue.svg)
-[![Engineered for Performance](https://img.shields.io/badge/Engineered-Low--End%20Device%20Optimized-orange.svg)](https://img.shields.io/badge/Engineered-Low--End%20Device%20Optimized-orange.svg)
+[![Stack](https://img.shields.io/badge/Stack-Next.js%2015%20|%20Flutter%20|%20MongoDB-0070f3?logo=next.js&logoColor=white)](https://nextjs.org)
+[![Real-time](https://img.shields.io/badge/Real--time-Socket.io%20|%20Reactive%20Sync-010101?logo=socket.io&logoColor=white)](https://socket.io)
+[![Infrastructure](https://img.shields.io/badge/Infra-Vercel%20|%20Docker-black?logo=vercel&logoColor=white)](https://vercel.com)
 
-Nexus POS is not just a billing app; it's a **distributed real-time ecosystem** designed to operate at scale on consumer-grade hardware. Built with a focus on **0ms-perceived latency**, it bridges the gap between sophisticated cloud analytics and rugged, low-cost restaurant floor operations.
-
----
-
-## 🏛️ Architecture Overview
-
-The system follows a **Reactive Event-Driven Architecture (REDA)**, ensuring that state transitions (Order Placement → KDS Notification → Payment Completion) are synchronized across all nodes in the network within milliseconds.
-
-### 1. Hybrid Web Gateway (Next.js + Socket.io)
-- **Aggregated Analytics**: Uses MongoDB `$facet` pipelines to deliver complex revenue insights in a single RTT.
-- **WebSocket Gateway**: A low-level Node.js gateway handles persistent duplex connections, replacing legacy polling with an "Instant-Push" model.
-- **Theme-Engine**: Server-side rendering (SSR) of theme preferences with instant client-side hydration for a zero-flicker experience.
-
-### 2. Native Mobile Front-End (Flutter)
-- **GPU-Aware Rendering**: Utilizes `RepaintBoundary` to isolate high-frequency UI updates (e.g., cart quantity adjustments), ensuring 60fps on devices with limited CPUs (₹6,000–₹10,000 range).
-- **Granular State Management**: Leveraging `Selector` patterns to minimize widget rebuild cycles, critical for low-RAM stability.
-- **Connection Pooling**: Implements a persistent HTTP client singleton with keep-alive headers to reduce TCP handshake overhead.
+Nexus POS is a **distributed, low-latency ecosystem** engineered for high-throughput restaurant environments. It represents a paradigm shift from traditional polling-based ERPs to a **Reactive Event-Driven Architecture (REDA)**, ensuring sub-100ms synchronization across the entire operational floor.
 
 ---
 
-## 🔥 Key Engineering Features
+## 📸 Technical Showcase
 
-- **Multi-Device Sync**: Real-time state propagation via `Socket.io-client`. When a waiter adds an item, the kitchen tablet rings instantly.
-- **Professional Billing Engine**: Native 80mm thermal print support with custom-authored PDF graphics, designed for high-throughput environments.
-- **WhatsApp Marketing CRM**: Deep-integrated customer reminder system using intent-based deep-linking for professional debt recovery and post-sale engagement.
-- **SRE Resilience**: Includes a comprehensive [SRE Runbook](./SRE_RUNBOOK.md) for disaster recovery and operational monitoring.
+### 1. Real-time Dashboard (Web)
+*Captured from live production environment*
+![Sales Dashboard](./public/assets/docs/sales_dashboard.png)
+> **Engineering Insight**: This dashboard utilizes a single-trip MongoDB `$facet` aggregation to deliver 12+ financial KPIs (Today's Revenue, Hourly Trends, AI Projections) in <100ms.
 
----
+### 2. High-Density Tables View (Real-time Operations)
+![Tables View](./public/assets/docs/tables_view.png)
+> **Engineering Insight**: Every table card is a reactive node. State changes (Occupied -> Paid) are pushed via WebSocket to all connected mobile and web clients instantly.
 
-## 🛠️ Infrastructure Setup
-
-### Web / API Engine
-1. **Production Deployment**:
-   - The web app and backend route handlers are deployed on Vercel (`https://restaurant-billing-app-self.vercel.app`).
-   - MongoDB Atlas serves as the decoupled database cluster.
-
-### Mobile Fleet
-1. **Environment Config**:
-   Define the production URL in `/mobile/.env`:
-   ```env
-   API_BASE_URL=https://restaurant-billing-app-self.vercel.app
-   ```
-2. **Build & Release**:
-   ```bash
-   cd mobile && flutter pub get
-   flutter run -d ios # Physical device execution
-   ```
+### 3. Frontier UI Concepts (Mobile & KDS)
+| POS Terminal (Mobile) | Kitchen Display (Tablet) |
+| :---: | :---: |
+| ![POS Concept](./public/assets/docs/pos_mobile_concept.png) | ![KDS Concept](./public/assets/docs/kds_tablet_concept.png) |
+| *High-frequency cart management* | *Ruggedized preparation workflow* |
 
 ---
 
-## 📈 Performance Benchmarks (Simulated)
-- **API Response Time**: < 120ms (P95)
-- **WebSocket Latency**: < 50ms
-- **UI Render Time**: < 16ms (consistent 60fps) on Unisoc T606/T610 chipsets.
+## 🏛️ System Architecture
+
+```mermaid
+graph TD
+    subgraph "Cloud Layer (Vercel + Atlas)"
+        WebGate["Hybrid Next.js Gateway"]
+        DB[(MongoDB Atlas Cluster)]
+    end
+
+    subgraph "Operations Layer"
+        KDS["Kitchen Display System (Tablet)"]
+        POS["Order Manager (Mobile)"]
+        Admin["Admin Analytics Dashboard (Web)"]
+    end
+
+    POS <-->|WebSocket: /api/socket/io| WebGate
+    KDS <-->|WebSocket: /api/socket/io| WebGate
+    Admin <-->|HTTPS/SSR| WebGate
+    WebGate <-->|Aggregation Pipeline| DB
+```
+
+---
+
+## 🔬 Deep-Dive: Technical Internals
+
+### 1. Reactive Analytics Pipeline
+At the heart of the "Sales Dashboard" is a complex MongoDB aggregation engine. Instead of multiple queries, we use a single `$facet` pipeline to minimize RTT (Round Trip Time).
+
+```javascript
+// lib/db/tables.ts - Dashboard Aggregation
+db.collection('orders').aggregate([
+  {
+    $facet: {
+      todayStats: [
+        { $match: { createdAt: { $gte: todayStart } } },
+        { $group: { _id: null, revenue: { $sum: { $cond: [{ $eq: ['$status', 'PAID'] }, '$total', 0] } } } }
+      ],
+      hourlyTrends: [ /* ... hourly buckets ... */ ],
+      topSellers: [ /* ... sort by qty ... */ ]
+    }
+  }
+])
+```
+
+### 2. WebSocket State Machine
+Nexus POS uses a unidirectional event bus to maintain state consistency across the network.
+
+*   **`ORDER_UPDATED`**: Broadcasted when an item is added, status changes, or payments are processed.
+*   **Payload Schema**:
+    ```json
+    {
+      "orderId": 451,
+      "type": "CREATED | ITEMS_ADDED | STATUS_UPDATED",
+      "status": "PENDING | PAID",
+      "tableNumber": 12
+    }
+    ```
+
+### 3. Flutter Rendering GPU Optimization
+To achieve 60fps on low-end ARM chipsets, the mobile app employs **Repaint Boundary Isolation**. By wrapping volatile UI clusters (like a ticking kitchen timer or a sliding cart) in a `RepaintBoundary`, we prevent the entire widget tree from re-rasterizing on every frame.
+
+---
+
+## 📂 Project Anatomy
+
+```text
+├── app/                 # Next.js 15 App Router (Dashboards & API)
+├── components/          # Reusable UI (Radix based)
+├── lib/                 # Core Business Logic
+│   ├── db/              # MongoDB Domain Logic (Menu, Orders, CRM)
+│   ├── socket.ts        # WebSocket Gateway implementation
+│   └── whatsapp.ts      # Intent-based deep-linking engine
+├── mobile/              # Flutter Native Application
+│   ├── lib/services/    # Real-time state management (Socket.io-client)
+│   └── lib/screens/     # Optimized 60fps UI screens
+└── SRE_RUNBOOK.md       # Operational & Disaster Recovery guide
+```
+
+---
+
+## 🛠️ Infrastructure & Setup
+
+### API & Dashboard (Web)
+1. **Env**: Set `MONGODB_URI` in `.env.local`.
+2. **Execute**: `npm install && npm run dev`.
+
+### Mobility Fleet (Flutter)
+1. **Env**: Update `mobile/.env` with `API_BASE_URL`.
+2. **Run**: `cd mobile && flutter run --release`.
 
 ---
 
 ## 📜 Dev Manifesto
-This project adheres to the principle of **"Mechanical Sympathy"**—writing software that works *with* the underlying hardware rather than fighting it. Every byte of memory and CPU cycle counts in a busy kitchen.
+This project adheres to **"Mechanical Sympathy"**. Every byte counts. Every frame matters.
 
 **Nexus POS — Built for the Grind.**
