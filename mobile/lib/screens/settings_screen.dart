@@ -60,9 +60,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       taxController.text = (s['taxRate'] ?? 0).toString();
       tableCountController.text = (s['tableCount'] ?? 10).toString();
       selectedTheme = s['theme'] ?? 'system';
-      
+
       final prefs = await SharedPreferences.getInstance();
-      serverIpController.text = prefs.getString('server_ip') ?? dotenv.env['API_BASE_URL'] ?? '';
+      serverIpController.text =
+          prefs.getString('server_ip') ?? dotenv.env['API_BASE_URL'] ?? '';
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -94,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       HapticFeedback.lightImpact();
       messenger.showSnackBar(
         SnackBar(
-          content: const Text('Settings saved ✓'),
+          content: Text('Settings saved ✓'),
           backgroundColor: AppColors.green,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -121,8 +122,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             backgroundColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
-              title: const Text(
+              titlePadding: EdgeInsets.only(left: 20, bottom: 14),
+              title: Text(
                 'Settings',
                 style: TextStyle(
                   fontSize: 24,
@@ -137,8 +138,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95), 
-                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0)
+                          Theme.of(
+                            context,
+                          ).scaffoldBackgroundColor.withValues(alpha: 0.95),
+                          Theme.of(
+                            context,
+                          ).scaffoldBackgroundColor.withValues(alpha: 0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -156,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 120),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   // ── Preferences ──────────────────────────────────────────────
@@ -168,19 +173,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _GlassSection(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'App Theme',
                               style: TextStyle(
-                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge?.color,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             SizedBox(
                               width: double.infinity,
                               child: SegmentedButton<String>(
@@ -188,17 +198,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ButtonSegment<String>(
                                     value: 'light',
                                     label: Text('Light'),
-                                    icon: Icon(Icons.light_mode_rounded, size: 16),
+                                    icon: Icon(
+                                      Icons.light_mode_rounded,
+                                      size: 16,
+                                    ),
                                   ),
                                   ButtonSegment<String>(
                                     value: 'dark',
                                     label: Text('Dark'),
-                                    icon: Icon(Icons.dark_mode_rounded, size: 16),
+                                    icon: Icon(
+                                      Icons.dark_mode_rounded,
+                                      size: 16,
+                                    ),
                                   ),
                                   ButtonSegment<String>(
                                     value: 'system',
                                     label: Text('Auto'),
-                                    icon: Icon(Icons.settings_suggest_rounded, size: 16),
+                                    icon: Icon(
+                                      Icons.settings_suggest_rounded,
+                                      size: 16,
+                                    ),
                                   ),
                                 ],
                                 selected: {selectedTheme},
@@ -208,16 +227,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     selectedTheme = newTheme;
                                   });
                                   // Optimistically apply the layout instantly:
-                                  final pos = Provider.of<PosProvider>(context, listen: false);
-                                  final Map<String, dynamic> optimisticSettings = Map<String, dynamic>.from(pos.settings);
+                                  final pos = Provider.of<PosProvider>(
+                                    context,
+                                    listen: false,
+                                  );
+                                  final Map<String, dynamic>
+                                  optimisticSettings =
+                                      Map<String, dynamic>.from(pos.settings);
                                   optimisticSettings['theme'] = newTheme;
                                   pos.setSettings(optimisticSettings);
                                 },
                                 style: SegmentedButton.styleFrom(
-                                  side: BorderSide(color: Theme.of(context).dividerColor),
-                                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  side: BorderSide(
+                                    color: Theme.of(context).dividerColor,
+                                  ),
+                                  textStyle: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                   backgroundColor: Colors.transparent,
-                                  selectedBackgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                                  selectedBackgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: 0.2),
                                 ),
                               ),
                             ),
@@ -227,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // ── Restaurant Profile ────────────────────────────────
                   _SectionHeader(
@@ -261,7 +292,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // ── Billing Configuration ─────────────────────────────
                   _SectionHeader(
@@ -283,14 +314,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: 'Tax Rate (%)',
                         icon: Icons.percent_rounded,
                         hint: '18',
-                        keyboard: const TextInputType.numberWithOptions(
+                        keyboard: TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // ── Operations ────────────────────────────────────────
                   _SectionHeader(
@@ -310,7 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
 
                   // ── Save Button ───────────────────────────────────────
                   SizedBox(
@@ -319,7 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       decoration: BoxDecoration(
                         gradient: isSaving
                             ? null
-                            : const LinearGradient(
+                            : LinearGradient(
                                 colors: [AppColors.orange, AppColors.red],
                               ),
                         color: isSaving ? const Color(0x20FFFFFF) : null,
@@ -344,26 +375,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         child: isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.color,
                                 ),
                               )
-                            : const Row(
+                            : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.check_rounded,
-                                    color: Colors.white,
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.color,
                                   ),
                                   SizedBox(width: 8),
                                   Text(
                                     'Save Settings',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
                                       fontWeight: FontWeight.w700,
                                       fontSize: 16,
                                     ),
@@ -374,32 +411,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
 
                   // ── App Info ──────────────────────────────────────────
                   _GlassSection(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 14,
                         ),
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(7),
+                              padding: EdgeInsets.all(7),
                               decoration: BoxDecoration(
                                 color: const Color(0x15FFFFFF),
                                 borderRadius: BorderRadius.circular(9),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.info_outline_rounded,
                                 size: 16,
-                                color: Colors.white54,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color
+                                    ?.withValues(alpha: 0.54),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            const Expanded(
+                            SizedBox(width: 12),
+                            Expanded(
                               child: Text(
                                 'NEXUS POS',
                                 style: TextStyle(
@@ -411,7 +452,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Text(
                               'v1.0.0',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.4),
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color
+                                    ?.withValues(alpha: 0.4),
                                 fontSize: 13,
                               ),
                             ),
@@ -445,22 +490,26 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 4),
+      padding: EdgeInsets.only(bottom: 10, left: 4),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(5),
+            padding: EdgeInsets.all(5),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 14, color: color),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             label.toUpperCase(),
             style: TextStyle(
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8) ?? Colors.grey,
+              color:
+                  Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.8) ??
+                  Colors.grey,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
@@ -488,7 +537,14 @@ class _GlassSection extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Theme.of(context).cardTheme.shape is RoundedRectangleBorder ? ((Theme.of(context).cardTheme.shape as RoundedRectangleBorder).side.color) : AppColors.borderSubtle),
+            border: Border.all(
+              color: Theme.of(context).cardTheme.shape is RoundedRectangleBorder
+                  ? ((Theme.of(context).cardTheme.shape
+                            as RoundedRectangleBorder)
+                        .side
+                        .color)
+                  : AppColors.borderSubtle,
+            ),
           ),
           child: Column(mainAxisSize: MainAxisSize.min, children: children),
         ),
@@ -506,7 +562,7 @@ class _SectionDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 0.5,
-      margin: const EdgeInsets.only(left: 52),
+      margin: EdgeInsets.only(left: 52),
       color: Theme.of(context).dividerColor,
     );
   }
@@ -532,11 +588,11 @@ class _SettingsField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(7),
+            padding: EdgeInsets.all(7),
             decoration: BoxDecoration(
               color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(9),
@@ -544,32 +600,38 @@ class _SettingsField extends StatelessWidget {
             child: Icon(
               icon,
               size: 16,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+              color: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: TextField(
               controller: controller,
               keyboardType: keyboard,
               style: TextStyle(
-                  fontSize: 15, 
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               decoration: InputDecoration(
                 labelText: label,
                 hintText: hint,
                 labelStyle: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                   fontSize: 12,
                 ),
                 hintStyle: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.3),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.3),
                   fontSize: 14,
                 ),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                contentPadding: EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ),

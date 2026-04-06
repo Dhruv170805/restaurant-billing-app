@@ -60,14 +60,15 @@ class _POSScreenState extends State<POSScreen> {
     Map<String, dynamic> settings,
   ) async {
     try {
-      final itemsToPrint =
-          order.items.where((i) => i.quantity > i.printedQuantity).toList();
+      final itemsToPrint = order.items
+          .where((i) => i.quantity > i.printedQuantity)
+          .toList();
 
       if (itemsToPrint.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('No new items to print')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No new items to print')),
+          );
         }
         return;
       }
@@ -114,18 +115,18 @@ class _POSScreenState extends State<POSScreen> {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Order'),
+        title: Text('Confirm Order'),
         content: Text(
           'Place order for $currencySymbol${pos.total.toStringAsFixed(2)}?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Confirm'),
+            child: Text('Confirm'),
           ),
         ],
       ),
@@ -199,8 +200,8 @@ class _POSScreenState extends State<POSScreen> {
             color: Colors.transparent,
             child: Center(
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 32),
-                padding: const EdgeInsets.all(28),
+                margin: EdgeInsets.symmetric(horizontal: 32),
+                padding: EdgeInsets.all(28),
                 decoration: BoxDecoration(
                   color: const Color(0xF00A0A0F),
                   borderRadius: BorderRadius.circular(28),
@@ -223,7 +224,7 @@ class _POSScreenState extends State<POSScreen> {
                           width: 86,
                           height: 86,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: [AppColors.green, AppColors.greenDark],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
@@ -239,55 +240,61 @@ class _POSScreenState extends State<POSScreen> {
                               ),
                             ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.check_rounded,
-                            color: Colors.white,
+                            color:
+                                (Theme.of(context).textTheme.bodyLarge?.color ??
+                                Colors.grey),
                             size: 46,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     Text(
                       widget.orderId != null ? 'Items Added!' : 'Order Placed!',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(
                       'Order #${newOrder.id} · Table ${widget.tableNumber}',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
                         fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     // Total amount pill
                     Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           colors: [AppColors.orange, AppColors.red],
                         ),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Text(
                         '$currency${newOrder.total.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color:
+                              (Theme.of(context).textTheme.bodyLarge?.color ??
+                              Colors.grey),
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24),
                     // Action buttons
                     Row(
                       children: [
@@ -295,12 +302,14 @@ class _POSScreenState extends State<POSScreen> {
                           child: _PosActionBtn(
                             label: 'Print KOT',
                             icon: Icons.receipt_outlined,
-                            color: Colors.white,
+                            color:
+                                (Theme.of(context).textTheme.bodyLarge?.color ??
+                                Colors.grey),
                             onTap: () =>
                                 _nativePrintKot(newOrder, pos.settings),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Expanded(
                           child: _PosActionBtn(
                             label: 'Print Bill',
@@ -312,7 +321,7 @@ class _POSScreenState extends State<POSScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: TextButton(
@@ -323,7 +332,8 @@ class _POSScreenState extends State<POSScreen> {
                         child: Text(
                           'Done',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: Theme.of(context).textTheme.bodyLarge?.color
+                                ?.withValues(alpha: 0.5),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -373,7 +383,9 @@ class _POSScreenState extends State<POSScreen> {
         title: Text(
           'Table ${widget.tableNumber}${widget.orderId != null ? " (#${widget.orderId})" : ""}',
         ),
-        backgroundColor: Theme.of(context).cardTheme.color?.withValues(alpha: 0.8) ?? Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+        backgroundColor:
+            Theme.of(context).cardTheme.color?.withValues(alpha: 0.8) ??
+            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -419,16 +431,13 @@ class _POSScreenState extends State<POSScreen> {
               height: 56,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
                   final cat = categories.elementAt(index);
                   final isSelected = cat == selectedCategory;
                   return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
+                    padding: EdgeInsets.only(right: 8.0),
                     child: FilterChip(
                       label: Text(
                         cat,
@@ -439,11 +448,11 @@ class _POSScreenState extends State<POSScreen> {
                       ),
                       selected: isSelected,
                       selectedColor: AppColors.orangeAlt,
-                      backgroundColor: const Color(0x22FFFFFF),
+                      backgroundColor: Theme.of(context).dividerColor,
                       checkmarkColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: const BorderSide(color: Color(0x33FFFFFF)),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
                       ),
                       onSelected: (_) => setState(() => selectedCategory = cat),
                     ),
@@ -454,9 +463,9 @@ class _POSScreenState extends State<POSScreen> {
             // Menu grid
             Expanded(
               child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(child: CircularProgressIndicator())
                   : GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 120),
+                      padding: EdgeInsets.fromLTRB(12, 4, 12, 120),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
@@ -465,10 +474,9 @@ class _POSScreenState extends State<POSScreen> {
                             mainAxisSpacing: 10,
                           ),
                       itemCount: filteredItems.length,
-                      itemBuilder: (context, index) =>
-                          RepaintBoundary(
-                            child: _menuCard(filteredItems[index], currencySymbol),
-                          ),
+                      itemBuilder: (context, index) => RepaintBoundary(
+                        child: _menuCard(filteredItems[index], currencySymbol),
+                      ),
                     ),
             ),
           ],
@@ -484,13 +492,15 @@ class _POSScreenState extends State<POSScreen> {
               total: pos.total,
             ),
             builder: (context, cartSummary, _) {
-              if (cartSummary.count == 0) return const SizedBox.shrink();
+              if (cartSummary.count == 0) return SizedBox.shrink();
               return RepaintBoundary(
                 child: _FloatingCartBar(
                   itemCount: cartSummary.count,
                   total: cartSummary.total,
                   currencySymbol: currencySymbol,
-                  onTap: () => _showCartSheet(Provider.of<PosProvider>(context, listen: false)),
+                  onTap: () => _showCartSheet(
+                    Provider.of<PosProvider>(context, listen: false),
+                  ),
                   isCheckingOut: isCheckingOut,
                 ),
               );
@@ -513,14 +523,14 @@ class _POSScreenState extends State<POSScreen> {
         Expanded(
           flex: 2,
           child: isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator())
               : Column(
                   children: [
                     SizedBox(
                       height: 56,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
                         ),
@@ -529,7 +539,7 @@ class _POSScreenState extends State<POSScreen> {
                           final cat = categories.elementAt(index);
                           final isSelected = cat == selectedCategory;
                           return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
+                            padding: EdgeInsets.only(right: 8.0),
                             child: FilterChip(
                               label: Text(
                                 cat,
@@ -542,12 +552,12 @@ class _POSScreenState extends State<POSScreen> {
                               ),
                               selected: isSelected,
                               selectedColor: AppColors.orangeAlt,
-                              backgroundColor: const Color(0x22FFFFFF),
+                              backgroundColor: Theme.of(context).dividerColor,
                               checkmarkColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
-                                side: const BorderSide(
-                                  color: Color(0x33FFFFFF),
+                                side: BorderSide(
+                                  color: Theme.of(context).dividerColor,
                                 ),
                               ),
                               onSelected: (_) =>
@@ -559,7 +569,7 @@ class _POSScreenState extends State<POSScreen> {
                     ),
                     Expanded(
                       child: GridView.builder(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.all(12),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 3,
@@ -568,10 +578,12 @@ class _POSScreenState extends State<POSScreen> {
                               mainAxisSpacing: 10,
                             ),
                         itemCount: filteredItems.length,
-                        itemBuilder: (context, index) =>
-                            RepaintBoundary(
-                              child: _menuCard(filteredItems[index], currencySymbol),
-                            ),
+                        itemBuilder: (context, index) => RepaintBoundary(
+                          child: _menuCard(
+                            filteredItems[index],
+                            currencySymbol,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -601,7 +613,7 @@ class _POSScreenState extends State<POSScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Theme.of(context).dividerColor),
             ),
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -613,7 +625,9 @@ class _POSScreenState extends State<POSScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        color:
+                            (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.grey),
                         letterSpacing: -0.2,
                       ),
                       maxLines: 3,
@@ -621,22 +635,21 @@ class _POSScreenState extends State<POSScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       colors: [AppColors.orangeAlt, AppColors.redAlt],
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '$currencySymbol${item.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color:
+                          (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.grey),
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                     ),
@@ -683,9 +696,9 @@ class _FloatingCartBar extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [AppColors.orangeAlt, AppColors.redAlt],
                 ),
                 borderRadius: BorderRadius.circular(20),
@@ -700,28 +713,31 @@ class _FloatingCartBar extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.25),
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color?.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '$itemCount item${itemCount != 1 ? 's' : ''}',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color:
+                            (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.grey),
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
+                  SizedBox(width: 12),
+                  Text(
                     'View Cart',
                     style: TextStyle(
-                      color: Colors.white,
+                      color:
+                          (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.grey),
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
@@ -729,16 +745,20 @@ class _FloatingCartBar extends StatelessWidget {
                   const Spacer(),
                   Text(
                     '$currencySymbol${total.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color:
+                          (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.grey),
                       fontWeight: FontWeight.w800,
                       fontSize: 17,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const Icon(
+                  SizedBox(width: 6),
+                  Icon(
                     Icons.expand_less_rounded,
-                    color: Colors.white,
+                    color:
+                        (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.grey),
                     size: 20,
                   ),
                 ],
@@ -778,18 +798,23 @@ class _CartBottomSheet extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xDD0A0A0A)
+                    ? Theme.of(context).scaffoldBackgroundColor.withAlpha(240)
                     : Colors.white.withValues(alpha: 0.95),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
                 border: Border(
-                  top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
+                  top: BorderSide(
+                    color: Theme.of(context).dividerColor,
+                    width: 0.5,
+                  ),
                 ),
               ),
               child: Column(
                 children: [
                   // Handle
                   Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    margin: EdgeInsets.only(top: 12, bottom: 8),
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
@@ -799,24 +824,21 @@ class _CartBottomSheet extends StatelessWidget {
                   ),
                   // Header
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 8,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     child: Row(
                       children: [
-                        const Text(
+                        Text(
                           'Cart Items',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Selector<PosProvider, int>(
                           selector: (_, p) => p.cart.length,
                           builder: (context, count, _) => Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 2,
                             ),
@@ -826,7 +848,7 @@ class _CartBottomSheet extends StatelessWidget {
                             ),
                             child: Text(
                               '$count',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.orangeAlt,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -839,21 +861,24 @@ class _CartBottomSheet extends StatelessWidget {
                           selector: (_, p) => p.cart.isNotEmpty,
                           builder: (context, isNotEmpty, _) => isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.delete_outline,
                                     color: Colors.redAccent,
                                   ),
                                   onPressed: () {
-                                    Provider.of<PosProvider>(context, listen: false).clearCart();
+                                    Provider.of<PosProvider>(
+                                      context,
+                                      listen: false,
+                                    ).clearCart();
                                     Navigator.pop(context);
                                   },
                                 )
-                              : const SizedBox.shrink(),
+                              : SizedBox.shrink(),
                         ),
                       ],
                     ),
                   ),
-                  const Divider(height: 1, color: Color(0x22FFFFFF)),
+                  Divider(height: 1, color: Theme.of(context).dividerColor),
                   // Items
                   Expanded(
                     child: Selector<PosProvider, List<CartItem>>(
@@ -861,7 +886,7 @@ class _CartBottomSheet extends StatelessWidget {
                       shouldRebuild: (prev, next) => prev != next,
                       builder: (context, items, _) => ListView.builder(
                         controller: scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: EdgeInsets.symmetric(vertical: 8),
                         itemCount: items.length,
                         itemBuilder: (context, index) {
                           return RepaintBoundary(
@@ -875,7 +900,10 @@ class _CartBottomSheet extends StatelessWidget {
                     ),
                   ),
                   // Totals
-                  Selector<PosProvider, ({double total, double tax, String taxLabel})>(
+                  Selector<
+                    PosProvider,
+                    ({double total, double tax, String taxLabel})
+                  >(
                     selector: (_, pos) => (
                       total: pos.total,
                       tax: pos.taxAmount,
@@ -906,21 +934,18 @@ class _CartItemTile extends StatelessWidget {
   final CartItem cartItem;
   final String currency;
 
-  const _CartItemTile({
-    required this.cartItem,
-    required this.currency,
-  });
+  const _CartItemTile({required this.cartItem, required this.currency});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: const Color(0x16FFFFFF),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0x22FFFFFF)),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
@@ -930,15 +955,12 @@ class _CartItemTile extends StatelessWidget {
                 children: [
                   Text(
                     cartItem.menuItem.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     '$currency${cartItem.total.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.orangeAlt,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
@@ -954,22 +976,25 @@ class _CartItemTile extends StatelessWidget {
                 _stepperBtn(
                   icon: Icons.remove,
                   color: AppColors.dangerAlt,
-                  onTap: () => Provider.of<PosProvider>(context, listen: false).updateQuantity(cartItem.menuItem, -1),
+                  onTap: () => Provider.of<PosProvider>(
+                    context,
+                    listen: false,
+                  ).updateQuantity(cartItem.menuItem, -1),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
                     '${cartItem.quantity}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
                 _stepperBtn(
                   icon: Icons.add,
                   color: AppColors.greenAlt,
-                  onTap: () => Provider.of<PosProvider>(context, listen: false).updateQuantity(cartItem.menuItem, 1),
+                  onTap: () => Provider.of<PosProvider>(
+                    context,
+                    listen: false,
+                  ).updateQuantity(cartItem.menuItem, 1),
                 ),
               ],
             ),
@@ -1027,7 +1052,7 @@ class _CartTotals extends StatelessWidget {
 
   Widget _buildInner(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1037,24 +1062,21 @@ class _CartTotals extends StatelessWidget {
               children: [
                 Text(
                   taxLabel,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: AppColors.muted, fontSize: 13),
                 ),
                 Text(
                   '$currency${taxAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
           ],
           // Total bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: [AppColors.orangeAlt, AppColors.redAlt],
               ),
               borderRadius: BorderRadius.circular(16),
@@ -1072,26 +1094,32 @@ class _CartTotals extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   isCheckingOut
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color:
+                                (Theme.of(context).textTheme.bodyLarge?.color ??
+                                Colors.grey),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Place Order',
                           style: TextStyle(
-                            color: Colors.white,
+                            color:
+                                (Theme.of(context).textTheme.bodyLarge?.color ??
+                                Colors.grey),
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),
                         ),
                   Text(
                     '$currency${total.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color:
+                          (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.grey),
                       fontWeight: FontWeight.w800,
                       fontSize: 18,
                     ),
@@ -1124,93 +1152,114 @@ class _LandscapeCartPanel extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Color(0x55000000),
               border: Border(left: BorderSide(color: AppColors.borderMid)),
             ),
-            child: Selector<PosProvider, ({List<CartItem> items, String currency, double total, double tax, String taxLabel})>(
-              selector: (_, pos) => (
-                items: pos.cart,
-                currency: pos.settings['currencySymbol'] ?? '₹',
-                total: pos.total,
-                tax: pos.taxAmount,
-                taxLabel: pos.settings['taxLabel'] ?? 'Tax',
-              ),
-              builder: (context, data, _) => Column(
-                children: [
-                  // Header
-                  AppBar(
-                    title: const Text(
-                      'Cart',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    automaticallyImplyLeading: false,
-                    actions: [
-                      if (data.items.isNotEmpty)
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.redAccent,
-                            size: 20,
-                          ),
-                          onPressed: () => Provider.of<PosProvider>(context, listen: false).clearCart(),
+            child:
+                Selector<
+                  PosProvider,
+                  ({
+                    List<CartItem> items,
+                    String currency,
+                    double total,
+                    double tax,
+                    String taxLabel,
+                  })
+                >(
+                  selector: (_, pos) => (
+                    items: pos.cart,
+                    currency: pos.settings['currencySymbol'] ?? '₹',
+                    total: pos.total,
+                    tax: pos.taxAmount,
+                    taxLabel: pos.settings['taxLabel'] ?? 'Tax',
+                  ),
+                  builder: (context, data, _) => Column(
+                    children: [
+                      // Header
+                      AppBar(
+                        title: Text(
+                          'Cart',
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        automaticallyImplyLeading: false,
+                        actions: [
+                          if (data.items.isNotEmpty)
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: Colors.redAccent,
+                                size: 20,
+                              ),
+                              onPressed: () => Provider.of<PosProvider>(
+                                context,
+                                listen: false,
+                              ).clearCart(),
+                            ),
+                        ],
+                      ),
+                      // Cart items
+                      Expanded(
+                        child: data.items.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.shopping_cart_outlined,
+                                      size: 40,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color
+                                          ?.withValues(alpha: 0.2),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Cart is empty',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.color
+                                            ?.withValues(alpha: 0.4),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                itemCount: data.items.length,
+                                itemBuilder: (context, index) {
+                                  return RepaintBoundary(
+                                    child: _CartItemTile(
+                                      cartItem: data.items[index],
+                                      currency: data.currency,
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                      // Totals
+                      RepaintBoundary(
+                        child: _CartTotals(
+                          total: data.total,
+                          taxAmount: data.tax,
+                          taxLabel: data.taxLabel,
+                          currency: data.currency,
+                          onCheckout: () => onCheckout(
+                            Provider.of<PosProvider>(context, listen: false),
+                          ),
+                          isCheckingOut: isCheckingOut,
+                          useSafeArea: false,
+                        ),
+                      ),
                     ],
                   ),
-                  // Cart items
-                  Expanded(
-                    child: data.items.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.shopping_cart_outlined,
-                                  size: 40,
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Cart is empty',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(
-                                      alpha: 0.4,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemCount: data.items.length,
-                            itemBuilder: (context, index) {
-                              return RepaintBoundary(
-                                child: _CartItemTile(
-                                  cartItem: data.items[index],
-                                  currency: data.currency,
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                  // Totals
-                  RepaintBoundary(
-                    child: _CartTotals(
-                      total: data.total,
-                      taxAmount: data.tax,
-                      taxLabel: data.taxLabel,
-                      currency: data.currency,
-                      onCheckout: () => onCheckout(Provider.of<PosProvider>(context, listen: false)),
-                      isCheckingOut: isCheckingOut,
-                      useSafeArea: false,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
           ),
         ),
       ),
@@ -1238,7 +1287,7 @@ class _PosActionBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11),
+        padding: EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(13),
@@ -1248,7 +1297,7 @@ class _PosActionBtn extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 15, color: color),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(

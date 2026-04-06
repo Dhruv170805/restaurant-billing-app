@@ -32,7 +32,9 @@ class AppConfig {
   String get webUrl {
     // 1. Prioritize --dart-define API_URL (Production)
     if (isProduction) {
-      return apiUrl.endsWith('/') ? apiUrl.substring(0, apiUrl.length -1) : apiUrl;
+      return apiUrl.endsWith('/')
+          ? apiUrl.substring(0, apiUrl.length - 1)
+          : apiUrl;
     }
 
     // 2. Fallback to .env configuration
@@ -49,18 +51,19 @@ class AppConfig {
     // 3. Port Handling (Avoid appending :80, :443, or :0)
     final port = defaultPort;
 
-    
-    // If the base URL already has a port, use it. 
+    // If the base URL already has a port, use it.
     // Otherwise, append defaultPort if it's not a standard web port.
-    if (!base.contains(':', base.indexOf('//') + 2) && 
-        port != '80' && port != '443' && port != '0' && port.isNotEmpty) {
+    if (!base.contains(':', base.indexOf('//') + 2) &&
+        port != '80' &&
+        port != '443' &&
+        port != '0' &&
+        port.isNotEmpty) {
       return '$base:$port';
     }
 
-    return base.endsWith('/') ? base.substring(0, base.length -1) : base;
+    return base.endsWith('/') ? base.substring(0, base.length - 1) : base;
   }
 }
-
 
 class ApiService {
   // ─── Singleton Pattern ───────────────────────────────────────────────────
@@ -114,10 +117,17 @@ class ApiService {
     return prefs.getString(key);
   }
 
-  Future<void> _diskWrite(String dataKey, String timeKey, String jsonStr) async {
+  Future<void> _diskWrite(
+    String dataKey,
+    String timeKey,
+    String jsonStr,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(dataKey, jsonStr);
-    await prefs.setString(timeKey, DateTime.now().millisecondsSinceEpoch.toString());
+    await prefs.setString(
+      timeKey,
+      DateTime.now().millisecondsSinceEpoch.toString(),
+    );
   }
 
   // ─── Cache invalidation ───────────────────────────────────────────────────
@@ -148,9 +158,12 @@ class ApiService {
   Future<void> clearDiskCache() async {
     final prefs = await SharedPreferences.getInstance();
     for (final key in [
-      _CacheKeys.menuData, _CacheKeys.menuTime,
-      _CacheKeys.settingsData, _CacheKeys.settingsTime,
-      _CacheKeys.dashboardData, _CacheKeys.dashboardTime,
+      _CacheKeys.menuData,
+      _CacheKeys.menuTime,
+      _CacheKeys.settingsData,
+      _CacheKeys.settingsTime,
+      _CacheKeys.dashboardData,
+      _CacheKeys.dashboardTime,
     ]) {
       await prefs.remove(key);
     }
@@ -161,7 +174,9 @@ class ApiService {
 
   // ─── Request helper with Exponential Backoff Retry ───────────────────────
   Future<http.Response> _requestWithRetry(
-      Future<http.Response> Function() task, String label) async {
+    Future<http.Response> Function() task,
+    String label,
+  ) async {
     const maxRetries = 3;
     int attempt = 0;
     while (true) {
@@ -170,7 +185,9 @@ class ApiService {
         return await task().timeout(AppDurations.httpTimeout);
       } catch (e) {
         if (e is SocketException || e is TimeoutException) {
-          debugPrint('⚠️ Network failure on $label (attempt $attempt/$maxRetries): $e');
+          debugPrint(
+            '⚠️ Network failure on $label (attempt $attempt/$maxRetries): $e',
+          );
           if (attempt >= maxRetries) return _handleError(e, label);
           await Future.delayed(Duration(milliseconds: 400 * attempt));
         } else {
@@ -183,8 +200,10 @@ class ApiService {
   Future<http.Response> _get(String path) async {
     final url = await baseUrl;
     return _requestWithRetry(
-      () => _client.get(Uri.parse('$url$path'),
-          headers: const {'Content-Type': 'application/json'}),
+      () => _client.get(
+        Uri.parse('$url$path'),
+        headers: const {'Content-Type': 'application/json'},
+      ),
       'GET $path',
     );
   }
@@ -192,9 +211,11 @@ class ApiService {
   Future<http.Response> _post(String path, Map<String, dynamic> body) async {
     final url = await baseUrl;
     return _requestWithRetry(
-      () => _client.post(Uri.parse('$url$path'),
-          headers: const {'Content-Type': 'application/json'},
-          body: json.encode(body)),
+      () => _client.post(
+        Uri.parse('$url$path'),
+        headers: const {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      ),
       'POST $path',
     );
   }
@@ -202,9 +223,11 @@ class ApiService {
   Future<http.Response> _put(String path, Map<String, dynamic> body) async {
     final url = await baseUrl;
     return _requestWithRetry(
-      () => _client.put(Uri.parse('$url$path'),
-          headers: const {'Content-Type': 'application/json'},
-          body: json.encode(body)),
+      () => _client.put(
+        Uri.parse('$url$path'),
+        headers: const {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      ),
       'PUT $path',
     );
   }
@@ -212,8 +235,10 @@ class ApiService {
   Future<http.Response> _delete(String path) async {
     final url = await baseUrl;
     return _requestWithRetry(
-      () => _client.delete(Uri.parse('$url$path'),
-          headers: const {'Content-Type': 'application/json'}),
+      () => _client.delete(
+        Uri.parse('$url$path'),
+        headers: const {'Content-Type': 'application/json'},
+      ),
       'DELETE $path',
     );
   }
@@ -221,16 +246,22 @@ class ApiService {
   http.Response _handleError(dynamic e, String label) {
     debugPrint('🚨 ApiService Error [$label]: $e');
     if (e is SocketException) {
-      throw Exception('Server Unreachable. Please check your network connection.');
+      throw Exception(
+        'Server Unreachable. Please check your network connection.',
+      );
     } else if (e is TimeoutException) {
-      throw Exception('Request timed out. The server might be busy or unreachable.');
+      throw Exception(
+        'Request timed out. The server might be busy or unreachable.',
+      );
     }
     throw Exception('Unexpected error during $label: $e');
   }
 
   // ─── Menu (memory → disk → network) ─────────────────────────────────────
   Future<List<MenuItem>> fetchMenuItems({bool forceRefresh = false}) async {
-    if (!forceRefresh && _menuCache != null && _isMemoryCacheValid(_menuCacheTime)) {
+    if (!forceRefresh &&
+        _menuCache != null &&
+        _isMemoryCacheValid(_menuCacheTime)) {
       return _menuCache!;
     }
     if (!forceRefresh && await _isDiskCacheValid(_CacheKeys.menuTime)) {
@@ -260,7 +291,9 @@ class ApiService {
     final raw = await _diskRead(_CacheKeys.menuData);
     if (raw == null) return null;
     try {
-      return (json.decode(raw) as List<dynamic>).map((j) => MenuItem.fromJson(j)).toList();
+      return (json.decode(raw) as List<dynamic>)
+          .map((j) => MenuItem.fromJson(j))
+          .toList();
     } catch (_) {
       return null;
     }
@@ -298,8 +331,12 @@ class ApiService {
   }
 
   // ─── Settings (memory → disk → network) ─────────────────────────────────
-  Future<Map<String, dynamic>> fetchSettings({bool forceRefresh = false}) async {
-    if (!forceRefresh && _settingsCache != null && _isMemoryCacheValid(_settingsCacheTime)) {
+  Future<Map<String, dynamic>> fetchSettings({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _settingsCache != null &&
+        _isMemoryCacheValid(_settingsCacheTime)) {
       return _settingsCache!;
     }
     if (!forceRefresh && await _isDiskCacheValid(_CacheKeys.settingsTime)) {
@@ -316,15 +353,23 @@ class ApiService {
     if (response.statusCode == 200) {
       _settingsCache = json.decode(response.body) as Map<String, dynamic>;
       _settingsCacheTime = DateTime.now();
-      await _diskWrite(_CacheKeys.settingsData, _CacheKeys.settingsTime, response.body);
+      await _diskWrite(
+        _CacheKeys.settingsData,
+        _CacheKeys.settingsTime,
+        response.body,
+      );
       return _settingsCache!;
     }
     throw Exception('Failed to load settings (${response.statusCode})');
   }
 
   // ─── Dashboard Stats (memory → disk → network) ───────────────────────────
-  Future<Map<String, dynamic>> fetchDashboardStats({bool forceRefresh = false}) async {
-    if (!forceRefresh && _dashboardCache != null && _isMemoryCacheValid(_dashboardCacheTime)) {
+  Future<Map<String, dynamic>> fetchDashboardStats({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _dashboardCache != null &&
+        _isMemoryCacheValid(_dashboardCacheTime)) {
       return _dashboardCache!;
     }
     if (!forceRefresh && await _isDiskCacheValid(_CacheKeys.dashboardTime)) {
@@ -341,7 +386,11 @@ class ApiService {
     if (response.statusCode == 200) {
       _dashboardCache = json.decode(response.body) as Map<String, dynamic>;
       _dashboardCacheTime = DateTime.now();
-      await _diskWrite(_CacheKeys.dashboardData, _CacheKeys.dashboardTime, response.body);
+      await _diskWrite(
+        _CacheKeys.dashboardData,
+        _CacheKeys.dashboardTime,
+        response.body,
+      );
       return _dashboardCache!;
     }
     throw Exception('Failed to load dashboard stats (${response.statusCode})');
@@ -373,8 +422,12 @@ class ApiService {
   }) async {
     final Map<String, dynamic> body = {'status': status};
     if (paymentMethod != null) body['paymentMethod'] = paymentMethod;
-    if (customerName != null && customerName.isNotEmpty) body['customerName'] = customerName;
-    if (customerPhone != null && customerPhone.isNotEmpty) body['customerPhone'] = customerPhone;
+    if (customerName != null && customerName.isNotEmpty) {
+      body['customerName'] = customerName;
+    }
+    if (customerPhone != null && customerPhone.isNotEmpty) {
+      body['customerPhone'] = customerPhone;
+    }
     final response = await _put('/orders/$orderId', body);
     if (response.statusCode != 200) {
       throw Exception('Failed to update order (${response.statusCode})');

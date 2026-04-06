@@ -3,10 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'api_service.dart';
 
-enum SocketEvent {
-  orderUpdated,
-  settingsUpdated,
-}
+enum SocketEvent { orderUpdated, settingsUpdated }
 
 class SocketService {
   static final SocketService _instance = SocketService._internal();
@@ -28,8 +25,8 @@ class SocketService {
   /// Fire and forget initialization to prevent blocking startup.
   void init() {
     if (_socket != null || _isDisabled) return;
-    
-    // Phase 17: Delay socket init by 2s to ensure the main UI thread is 
+
+    // Phase 17: Delay socket init by 2s to ensure the main UI thread is
     // completely free for initial rendering and user interaction.
     Future.delayed(const Duration(seconds: 2), () {
       _connect();
@@ -38,17 +35,16 @@ class SocketService {
 
   void _connect() {
     String baseUrl = ApiService().webUrl;
-    
-    // Phase 18: Explicitly force :443 for https if port is missing.
-    // This squashes the underlying engine's tendency to default to :0.
-    if (baseUrl.startsWith('https://') && !baseUrl.contains(':', 8)) {
-      baseUrl = '$baseUrl:443';
-    } else if (baseUrl.startsWith('http://') && !baseUrl.contains(':', 7)) {
-      baseUrl = '$baseUrl:80';
+
+    // Phase 18: Simplify URL construction.
+    // The socket_io_client library handles default ports (80/443) automatically based on scheme.
+    // Manual appending can cause the underlying engine to report ':0' on failed connection attempts.
+    if (!baseUrl.startsWith('http')) {
+      baseUrl = 'https://$baseUrl';
     }
 
     debugPrint('🔌 Attempting WebSocket connection to: $baseUrl');
-    
+
     _socket = io.io(
       baseUrl,
       io.OptionBuilder()
@@ -59,7 +55,6 @@ class SocketService {
           .setReconnectionAttempts(_maxRetries)
           .build(),
     );
-
 
     _socket!.onConnect((_) {
       _isConnected = true;
@@ -75,10 +70,14 @@ class SocketService {
     _socket!.onConnectError((err) {
       _retryCount++;
       debugPrint('⚠️ WebSocket Connection Error (Attempt $_retryCount): $err');
-      
-      // If we get a 404 or have failed too many times, assume infrastructure is incompatible (Vercel)
-      if (err.toString().contains('404') || _retryCount >= _maxRetries) {
-        _disableSocket('Infrastructure incompatible or unreachable');
+
+      // If we get a 404, the infrastructure (Vercel) likely doesn't support WebSockets.
+      if (err.toString().contains('404')) {
+        _disableSocket(
+          'Serverless Infrastructure Limitation (Vercel detected)',
+        );
+      } else if (_retryCount >= _maxRetries) {
+        _disableSocket('Max connection retries exceeded');
       }
     });
 
@@ -88,7 +87,10 @@ class SocketService {
     });
 
     _socket!.on('SETTINGS_UPDATED', (data) {
-      _eventController.add({'event': SocketEvent.settingsUpdated, 'data': data});
+      _eventController.add({
+        'event': SocketEvent.settingsUpdated,
+        'data': data,
+      });
     });
   }
 
@@ -108,4 +110,3 @@ class SocketService {
     _eventController.close();
   }
 }
-

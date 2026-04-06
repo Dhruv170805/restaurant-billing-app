@@ -48,8 +48,20 @@ mongodump --uri="mongodb+srv://<user>:<pwd>@cluster0.abc.mongodb.net/restaurant_
 | **Mobile Timeout** | High | Network jitter or missing HTTP prefix | 1. Verify `API_BASE_URL` in `.env`. 2. Check corporate firewall whitelisting. |
 | **DB Connection Error** | Critical | Atlas IP whitelist block | 1. Whitelist Vercel outbound IPs in Atlas. 2. Verify `MONGODB_URI` string. |
 | **WebSocket Failure** | Medium | Load balancer connection termination | 1. Ensure `transports: ['websocket']` is enforced. 2. Verify Vercel WebSocket limit. |
+| **404 Socket Error** | Medium | Infrastructure mismatch (Vercel) | ⚠️ **Note**: Vercel Serverless doesn't support Socket.io. App will fallback to 12s polling. |
 
 ---
+
+## 🔌 4. WebSocket Connectivity Architecture
+
+### 4.1 Hybrid Real-time Strategy
+Nexus POS uses a tiered approach for event propagation:
+1.  **Tier 1 (WebSocket)**: Active during local development or when hosted on a dedicated Node.js server (Railway/Render/Docker).
+2.  **Tier 2 (Long Polling)**: Automatic fallback if WebSocket upgrade fails (e.g., standard Vercel deployments).
+3.  **Tier 3 (Background Poll)**: 12-second interval state synchronization when the Real-time Gateway is unreachable.
+
+### 4.2 Known Limitation: Vercel Edge
+The standard Next.js deployment on Vercel returns a `404` for `/api/socket/io` because the underlying Socket.io server cannot bind to the ephemeral serverless socket. To enable full real-time capabilities in production, the backend should be migrated to a persistent environment defined in the `Dockerfile`.
 
 ## 📊 4. Monitoring & SLOs
 

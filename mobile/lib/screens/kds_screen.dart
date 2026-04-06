@@ -33,7 +33,7 @@ class _KDSScreenState extends State<KDSScreen> {
   void initState() {
     super.initState();
     _loadOrders();
-    
+
     // Listen for real-time order updates
     _socketSub = SocketService().eventStream.listen((event) {
       if (event['event'] == SocketEvent.orderUpdated) {
@@ -132,11 +132,11 @@ class _KDSScreenState extends State<KDSScreen> {
             backgroundColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
+              titlePadding: EdgeInsets.only(left: 20, bottom: 14),
               title: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'Kitchen',
                     style: TextStyle(
                       fontSize: 24,
@@ -144,14 +144,11 @@ class _KDSScreenState extends State<KDSScreen> {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   if (_orders.isNotEmpty)
                     Container(
-                      margin: const EdgeInsets.only(bottom: 3),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
+                      margin: EdgeInsets.only(bottom: 3),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.danger.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
@@ -161,7 +158,7 @@ class _KDSScreenState extends State<KDSScreen> {
                       ),
                       child: Text(
                         '${_orders.length} active',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.danger,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -174,7 +171,7 @@ class _KDSScreenState extends State<KDSScreen> {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [Color(0xAA000000), Color(0x00000000)],
                         begin: Alignment.topCenter,
@@ -187,7 +184,7 @@ class _KDSScreenState extends State<KDSScreen> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.refresh_rounded),
+                icon: Icon(Icons.refresh_rounded),
                 onPressed: _loadOrders,
               ),
             ],
@@ -206,19 +203,21 @@ class _KDSScreenState extends State<KDSScreen> {
                       size: 72,
                       color: AppColors.green.withValues(alpha: 0.4),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
+                    SizedBox(height: 16),
+                    Text(
                       'All caught up!',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(
                       'No pending kitchen orders',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.4),
                         fontSize: 15,
                       ),
                     ),
@@ -228,7 +227,7 @@ class _KDSScreenState extends State<KDSScreen> {
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 120),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final order = _orders[index];
@@ -316,9 +315,9 @@ class _KDSCardState extends State<_KDSCard>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 80),
           transform: Matrix4.translationValues(_isDone ? 400 : _dragDx, 0, 0),
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: const Color(0x10FFFFFF),
+            color: Theme.of(context).dividerColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: widget.ageColor.withValues(alpha: 0.4),
@@ -337,10 +336,7 @@ class _KDSCardState extends State<_KDSCard>
             children: [
               // ── Header bar ───────────────────────────────────────
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: widget.ageColor.withValues(alpha: 0.12),
                   borderRadius: const BorderRadius.vertical(
@@ -351,7 +347,7 @@ class _KDSCardState extends State<_KDSCard>
                   children: [
                     // Table badge
                     Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 4,
                       ),
@@ -369,10 +365,10 @@ class _KDSCardState extends State<_KDSCard>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Text(
                       'Order #${widget.order.id}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
@@ -386,7 +382,7 @@ class _KDSCardState extends State<_KDSCard>
                           size: 14,
                           color: widget.ageColor,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           widget.elapsed,
                           style: TextStyle(
@@ -403,11 +399,11 @@ class _KDSCardState extends State<_KDSCard>
 
               // ── Items list ───────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   children: widget.order.items.map((item) {
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
                           Container(
@@ -415,22 +411,22 @@ class _KDSCardState extends State<_KDSCard>
                             height: 28,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: const Color(0x22FFFFFF),
+                              color: Theme.of(context).dividerColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '${item.quantity}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 14,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               item.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -445,10 +441,7 @@ class _KDSCardState extends State<_KDSCard>
 
               // ── Swipe hint / Done button ─────────────────────────
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: const Color(0x08FFFFFF),
                   borderRadius: const BorderRadius.vertical(
@@ -467,8 +460,8 @@ class _KDSCardState extends State<_KDSCard>
                             color: AppColors.green,
                             size: _dragDx > 20 ? 22 : 16,
                           ),
-                          const SizedBox(width: 6),
-                          const Text(
+                          SizedBox(width: 6),
+                          Text(
                             'Swipe right — Done',
                             style: TextStyle(
                               color: AppColors.green,
@@ -483,7 +476,7 @@ class _KDSCardState extends State<_KDSCard>
                     GestureDetector(
                       onTap: widget.onDone,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 6,
                         ),
@@ -498,7 +491,7 @@ class _KDSCardState extends State<_KDSCard>
                             ).withValues(alpha: 0.4),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(
                               Icons.check_rounded,

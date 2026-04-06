@@ -118,14 +118,16 @@ class _MainLayoutState extends State<MainLayout> {
                   border: Border.all(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? const Color(0x33444444)
-                        : const Color(0x44FFFFFF),
+                        : Theme.of(context).dividerColor,
                     width: 0.5,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.black.withValues(alpha: 0.5)
-                          : Theme.of(context).shadowColor.withValues(alpha: 0.15),
+                          : Theme.of(
+                              context,
+                            ).shadowColor.withValues(alpha: 0.15),
                       blurRadius: 30,
                       offset: const Offset(0, 8),
                     ),
@@ -174,7 +176,10 @@ class _MainLayoutState extends State<MainLayout> {
               isSelected ? item.activeIcon : item.icon,
               color: isSelected
                   ? AppColors.orangeAlt
-                  : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.45) ?? Colors.grey,
+                  : Theme.of(context).textTheme.bodyMedium?.color?.withValues(
+                          alpha: 0.45,
+                        ) ??
+                        Colors.grey,
               size: 22,
             ),
             AnimatedSize(
@@ -183,10 +188,10 @@ class _MainLayoutState extends State<MainLayout> {
               child: isSelected
                   ? Row(
                       children: [
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Text(
                           item.label,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.orangeAlt,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -195,7 +200,7 @@ class _MainLayoutState extends State<MainLayout> {
                         ),
                       ],
                     )
-                  : const SizedBox.shrink(),
+                  : SizedBox.shrink(),
             ),
           ],
         ),
@@ -207,13 +212,20 @@ class _MainLayoutState extends State<MainLayout> {
   /// Called lazily by PageView.builder — only executed when the user first visits a tab.
   Widget _buildPage(int index) {
     switch (index) {
-      case 0: return const SalesDashboardScreen();
-      case 1: return const DashboardScreen();
-      case 2: return const OrdersScreen();
-      case 3: return const KDSScreen();
-      case 4: return const MenuScreen();
-      case 5: return const SettingsScreen();
-      default: return const SalesDashboardScreen();
+      case 0:
+        return const SalesDashboardScreen();
+      case 1:
+        return const DashboardScreen();
+      case 2:
+        return const OrdersScreen();
+      case 3:
+        return const KDSScreen();
+      case 4:
+        return const MenuScreen();
+      case 5:
+        return const SettingsScreen();
+      default:
+        return const SalesDashboardScreen();
     }
   }
 }

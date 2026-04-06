@@ -44,7 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Smart Refresh: Updates age strings AND polls if WebSocket is disabled
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
-      
+
       // 1. Refresh human-readable "elapsed" strings (UI only)
       setState(() {});
 
@@ -56,11 +56,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-
   Future<void> _loadStaleDataThenRefresh() async {
     final staleSettings = await api.fetchSettingsFromDisk();
     if (staleSettings != null && mounted) {
-      Provider.of<PosProvider>(context, listen: false).setSettings(staleSettings);
+      Provider.of<PosProvider>(
+        context,
+        listen: false,
+      ).setSettings(staleSettings);
       setState(() {
         settings = staleSettings;
         isLoading = false;
@@ -79,7 +81,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> loadDashboard({bool silent = false}) async {
-    if (!silent) setState(() { isLoading = true; errorMessage = null; });
+    if (!silent) {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+    }
     try {
       final fetchedSettings = await api.fetchSettings();
       if (!mounted) return;
@@ -105,10 +112,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         errorMessage = e.toString().replaceAll('Exception: ', '');
       });
       if (!silent && activeOrders.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Update failed: $errorMessage'),
-          backgroundColor: AppColors.dangerAlt,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Update failed: $errorMessage'),
+            backgroundColor: AppColors.dangerAlt,
+          ),
+        );
       }
     }
   }
@@ -167,8 +176,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95),
-                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
+                          Theme.of(
+                            context,
+                          ).scaffoldBackgroundColor.withValues(alpha: 0.95),
+                          Theme.of(
+                            context,
+                          ).scaffoldBackgroundColor.withValues(alpha: 0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -194,12 +207,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.circle,
-                      color: AppColors.orangeAlt,
-                      size: 7,
-                    ),
-                    const SizedBox(width: 5),
+                    Icon(Icons.circle, color: AppColors.orangeAlt, size: 7),
+                    SizedBox(width: 5),
                     Text(
                       '$occupiedCount/$tableCount seats',
                       style: TextStyle(
@@ -212,7 +221,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded),
+                icon: Icon(Icons.refresh_rounded),
                 onPressed: loadDashboard,
               ),
             ],
@@ -226,21 +235,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Row(
                   children: [
                     _legendDot(AppColors.green, '< 15 min'),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     _legendDot(AppColors.amber, '15–30 min'),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     _legendDot(AppColors.danger, '30+ min'),
                     const Spacer(),
                     Icon(
                       Icons.circle_outlined,
                       size: 10,
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color?.withValues(alpha: 0.3),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Text(
                       'Available',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.4),
                         fontSize: 11,
                       ),
                     ),
@@ -256,35 +269,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             )
           else if (errorMessage != null && activeOrders.isEmpty)
-             SliverFillRemaining(
+            SliverFillRemaining(
               hasScrollBody: false,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.wifi_off_rounded, size: 64, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3)),
-                    const SizedBox(height: 24),
-                    Text('Connection Interrupted', 
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: Theme.of(context).textTheme.displayLarge?.color),
+                    Icon(
+                      Icons.wifi_off_rounded,
+                      size: 64,
+                      color: Theme.of(
+                        context,
+                      ).iconTheme.color?.withValues(alpha: 0.3),
                     ),
-                    const SizedBox(height: 12),
-                    Text(errorMessage ?? 'Unknown error occurred.',
+                    SizedBox(height: 24),
+                    Text(
+                      'Connection Interrupted',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: Theme.of(context).textTheme.displayLarge?.color,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      errorMessage ?? 'Unknown error occurred.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.4),
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32),
                     ElevatedButton.icon(
                       onPressed: loadDashboard,
-                      icon: const Icon(Icons.refresh_rounded, size: 20),
-                      label: const Text('Retry Connection'),
+                      icon: Icon(Icons.refresh_rounded, size: 20),
+                      label: Text('Retry Connection'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.orangeAlt.withValues(alpha: 0.15),
+                        backgroundColor: AppColors.orangeAlt.withValues(
+                          alpha: 0.15,
+                        ),
                         foregroundColor: AppColors.orangeAlt,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        side: BorderSide(color: AppColors.orangeAlt.withValues(alpha: 0.3)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: BorderSide(
+                          color: AppColors.orangeAlt.withValues(alpha: 0.3),
+                        ),
                       ),
                     ),
                   ],
@@ -365,11 +404,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 8,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 4),
+        SizedBox(width: 4),
         Text(
           label,
           style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+            color: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
             fontSize: 11,
           ),
         ),
@@ -448,10 +489,14 @@ class _TableCardState extends State<_TableCard>
                   )
                 : LinearGradient(
                     colors: [
-                      Theme.of(context).cardTheme.color?.withValues(alpha: 0.7) ??
-                          const Color(0x1AFFFFFF),
-                      Theme.of(context).cardTheme.color?.withValues(alpha: 0.7) ??
-                          const Color(0x1AFFFFFF),
+                      Theme.of(
+                            context,
+                          ).cardTheme.color?.withValues(alpha: 0.7) ??
+                          Theme.of(context).colorScheme.surface,
+                      Theme.of(
+                            context,
+                          ).cardTheme.color?.withValues(alpha: 0.7) ??
+                          Theme.of(context).colorScheme.surface,
                     ],
                   ),
             borderRadius: BorderRadius.circular(22),
@@ -483,7 +528,9 @@ class _TableCardState extends State<_TableCard>
                     decoration: BoxDecoration(
                       color: isOccupied
                           ? glowColor.withValues(alpha: 0.2)
-                          : Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                          : Theme.of(
+                              context,
+                            ).dividerColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -493,11 +540,8 @@ class _TableCardState extends State<_TableCard>
                       size: 18,
                       color: isOccupied
                           ? glowColor
-                          : Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.color
-                              ?.withValues(alpha: 0.5),
+                          : Theme.of(context).textTheme.bodyMedium?.color
+                                ?.withValues(alpha: 0.5),
                     ),
                   ),
                   const Spacer(),
@@ -529,7 +573,7 @@ class _TableCardState extends State<_TableCard>
                 ),
               ),
 
-              const SizedBox(height: 3),
+              SizedBox(height: 3),
 
               // ── Amount / Available ───────────────────────────────
               if (isOccupied && order != null) ...[
@@ -541,50 +585,42 @@ class _TableCardState extends State<_TableCard>
                     color: glowColor,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 // Items count + elapsed time
                 Row(
                   children: [
                     Icon(
                       Icons.restaurant_outlined,
                       size: 10,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withValues(alpha: 0.45),
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.45),
                     ),
-                    const SizedBox(width: 3),
+                    SizedBox(width: 3),
                     Text(
                       '$itemCount item${itemCount == 1 ? '' : 's'}',
                       style: TextStyle(
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.color
-                            ?.withValues(alpha: 0.5),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                         fontSize: 11,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     Icon(
                       Icons.timer_outlined,
                       size: 10,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withValues(alpha: 0.45),
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.45),
                     ),
-                    const SizedBox(width: 3),
+                    SizedBox(width: 3),
                     Text(
                       widget.elapsed ?? '',
                       style: TextStyle(
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.color
-                            ?.withValues(alpha: 0.5),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                         fontSize: 11,
                       ),
                     ),
@@ -594,11 +630,9 @@ class _TableCardState extends State<_TableCard>
                 Text(
                   'Available',
                   style: TextStyle(
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color
-                        ?.withValues(alpha: 0.5),
+                    color: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -610,7 +644,6 @@ class _TableCardState extends State<_TableCard>
     );
   }
 
-
   void _showQuickActions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -620,11 +653,14 @@ class _TableCardState extends State<_TableCard>
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xEE0A0A0A),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor.withAlpha(240),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               border: Border(
-                top: BorderSide(color: Color(0x22FFFFFF), width: 0.5),
+                top: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                  width: 0.5,
+                ),
               ),
             ),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
@@ -637,20 +673,19 @@ class _TableCardState extends State<_TableCard>
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.25),
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color?.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Text(
                   'Table ${widget.tableNumber}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 _QuickActionTile(
                   icon: Icons.add_circle_outline_rounded,
                   iconColor: AppColors.blue,
@@ -717,7 +752,9 @@ class _TableCardState extends State<_TableCard>
               child: Container(
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  color: const Color(0xF0101018),
+                  color: Theme.of(
+                    context,
+                  ).scaffoldBackgroundColor.withAlpha(240),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: AppColors.borderSubtle),
                 ),
@@ -729,31 +766,34 @@ class _TableCardState extends State<_TableCard>
                       children: [
                         Text(
                           'Table ${widget.tableNumber}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 18,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close),
+                          icon: Icon(Icons.close),
                           onPressed: () => Navigator.pop(context),
-                          color: Colors.white54,
+                          color: Theme.of(context).textTheme.bodyMedium?.color
+                              ?.withValues(alpha: 0.54),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Let customer scan to view their order',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.4),
                         fontSize: 13,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: QrImageView(
@@ -770,20 +810,22 @@ class _TableCardState extends State<_TableCard>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     Text(
                       'Order #${orderId ?? "–"}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                         color: AppColors.orange,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       qrUrl,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.3),
                         fontSize: 10,
                       ),
                       textAlign: TextAlign.center,
@@ -826,7 +868,7 @@ class _QuickActionTile extends StatelessWidget {
       ),
       title: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
       ),
       onTap: onTap,
     );

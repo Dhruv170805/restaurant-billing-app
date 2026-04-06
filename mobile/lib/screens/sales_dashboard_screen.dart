@@ -65,7 +65,12 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
   }
 
   Future<void> loadStats({bool silent = false}) async {
-    if (!silent) setState(() { isLoading = true; errorMessage = null; });
+    if (!silent) {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+    }
     try {
       final data = await api.fetchDashboardStats();
       if (!mounted) return;
@@ -81,10 +86,12 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
         errorMessage = e.toString().replaceAll('Exception: ', '');
       });
       if (!silent && stats.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Update failed: $errorMessage'),
-          backgroundColor: AppColors.dangerAlt,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Update failed: $errorMessage'),
+            backgroundColor: AppColors.dangerAlt,
+          ),
+        );
       }
     }
   }
@@ -206,13 +213,18 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xDD0A0A0A),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).scaffoldBackgroundColor.withAlpha(240),
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(28),
                     ),
                     border: Border(
-                      top: BorderSide(color: Color(0x33FFFFFF), width: 0.5),
+                      top: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                        width: 0.5,
+                      ),
                     ),
                   ),
                   child: Column(
@@ -223,7 +235,9 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.color?.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -237,16 +251,16 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                               children: [
                                 Text(
                                   'Bill – Order #${order['id']}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: -0.3,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                SizedBox(height: 2),
                                 Text(
                                   order['customerName'] ?? 'Unknown',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.muted,
                                     fontSize: 13,
                                   ),
@@ -263,7 +277,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                                 color: const Color(0x33FF3B30),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'UNPAID',
                                 style: TextStyle(
                                   color: AppColors.dangerAlt,
@@ -275,7 +289,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                           ],
                         ),
                       ),
-                      const Divider(height: 1, color: Color(0x22FFFFFF)),
+                      Divider(height: 1, color: Theme.of(context).dividerColor),
                       // Items list
                       Expanded(
                         child: ListView.builder(
@@ -298,27 +312,27 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                                     height: 28,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: const Color(0x22FFFFFF),
+                                      color: Theme.of(context).dividerColor,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
                                       '$qty',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 13,
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       item['name'] ?? '',
-                                      style: const TextStyle(fontSize: 14),
+                                      style: TextStyle(fontSize: 14),
                                     ),
                                   ),
                                   Text(
                                     '$currency${(qty * price).toStringAsFixed(2)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 14,
                                     ),
@@ -337,7 +351,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [AppColors.orangeAlt, AppColors.redAlt],
                           ),
                           borderRadius: BorderRadius.circular(16),
@@ -345,18 +359,22 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Total Due',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge?.color,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 16,
                               ),
                             ),
                             Text(
                               '$currency${total.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge?.color,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 20,
                               ),
@@ -373,11 +391,8 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                               Expanded(
                                 child: OutlinedButton.icon(
                                   onPressed: () => _printBillForUnpaid(order),
-                                  icon: const Icon(
-                                    Icons.print_rounded,
-                                    size: 16,
-                                  ),
-                                  label: const Text('Print'),
+                                  icon: Icon(Icons.print_rounded, size: 16),
+                                  label: Text('Print'),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.white,
                                     side: const BorderSide(
@@ -386,7 +401,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: 12),
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed: () {
@@ -398,11 +413,8 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                                       order['customerName'],
                                     );
                                   },
-                                  icon: const Icon(
-                                    Icons.chat_rounded,
-                                    size: 16,
-                                  ),
-                                  label: const Text('WhatsApp'),
+                                  icon: Icon(Icons.chat_rounded, size: 16),
+                                  label: Text('WhatsApp'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.greenAlt,
                                     foregroundColor: Colors.white,
@@ -468,11 +480,13 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     title,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     value,
                     style: TextStyle(
@@ -520,13 +534,17 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
               background: ClipRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: Container(color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8)),
+                  child: Container(
+                    color: Theme.of(
+                      context,
+                    ).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                  ),
                 ),
               ),
             ),
             actions: [
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.picture_as_pdf_rounded,
                   color: AppColors.orange,
                 ),
@@ -534,7 +552,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                 tooltip: 'Download Daily Profit Report',
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded),
+                icon: Icon(Icons.refresh_rounded),
                 onPressed: loadStats,
               ),
             ],
@@ -543,35 +561,61 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
           if (isLoading)
             const SkeletonSalesDashboard()
           else if (errorMessage != null && stats.isEmpty)
-             SliverFillRemaining(
+            SliverFillRemaining(
               hasScrollBody: false,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.wifi_off_rounded, size: 64, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3)),
-                    const SizedBox(height: 24),
-                    Text('Connection Interrupted', 
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: Theme.of(context).textTheme.displayLarge?.color),
+                    Icon(
+                      Icons.wifi_off_rounded,
+                      size: 64,
+                      color: Theme.of(
+                        context,
+                      ).iconTheme.color?.withValues(alpha: 0.3),
                     ),
-                    const SizedBox(height: 12),
-                    Text(errorMessage ?? 'Unknown error occurred.',
+                    SizedBox(height: 24),
+                    Text(
+                      'Connection Interrupted',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: Theme.of(context).textTheme.displayLarge?.color,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      errorMessage ?? 'Unknown error occurred.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.4),
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32),
                     ElevatedButton.icon(
                       onPressed: loadStats,
-                      icon: const Icon(Icons.refresh_rounded, size: 20),
-                      label: const Text('Retry Connection'),
+                      icon: Icon(Icons.refresh_rounded, size: 20),
+                      label: Text('Retry Connection'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.orangeAlt.withValues(alpha: 0.15),
+                        backgroundColor: AppColors.orangeAlt.withValues(
+                          alpha: 0.15,
+                        ),
                         foregroundColor: AppColors.orangeAlt,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        side: BorderSide(color: AppColors.orangeAlt.withValues(alpha: 0.3)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: BorderSide(
+                          color: AppColors.orangeAlt.withValues(alpha: 0.3),
+                        ),
                       ),
                     ),
                   ],
@@ -624,8 +668,8 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                   ),
 
                   // ─── Payment Breakdown ─────────────────────────────
-                  const SizedBox(height: 28),
-                  const Text(
+                  SizedBox(height: 28),
+                  Text(
                     'Payment Breakdown',
                     style: TextStyle(
                       fontSize: 20,
@@ -633,13 +677,13 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0x1AFFFFFF),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: AppColors.borderMid,
@@ -655,7 +699,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                               currency: currency,
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           Row(
                             children: [
                               Expanded(
@@ -687,8 +731,8 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                   ),
 
                   // ─── Hourly Revenue Chart ──────────────────────────
-                  const SizedBox(height: 28),
-                  const Text(
+                  SizedBox(height: 28),
+                  Text(
                     'Today — Peak Hours',
                     style: TextStyle(
                       fontSize: 20,
@@ -696,7 +740,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   RepaintBoundary(
                     child: _HourlyRevenueChart(
                       hourlyData:
@@ -709,8 +753,8 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                   ),
 
                   // ─── Top Selling Dishes ────────────────────────────
-                  const SizedBox(height: 32),
-                  const Text(
+                  SizedBox(height: 32),
+                  Text(
                     '🏆 Top Selling (7 Days)',
                     style: TextStyle(
                       fontSize: 20,
@@ -718,7 +762,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   RepaintBoundary(
                     child: _TopSellingChart(
                       topItems: List<Map<String, dynamic>>.from(
@@ -729,8 +773,8 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                   ),
 
                   // ─── AI Revenue Prediction ─────────────────────────
-                  const SizedBox(height: 32),
-                  const Text(
+                  SizedBox(height: 32),
+                  Text(
                     '🤖 AI Revenue Prediction',
                     style: TextStyle(
                       fontSize: 20,
@@ -738,7 +782,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _AiPredictionCard(
                     weeklyAvg: List<num>.from(stats['weeklyAvg'] ?? []),
                     todayRevenue: (stats['todayRevenue'] ?? 0.0) as num,
@@ -746,7 +790,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     currency: currency,
                   ),
 
-                  const SizedBox(height: 28),
+                  SizedBox(height: 28),
                   Row(
                     children: [
                       Container(
@@ -757,8 +801,8 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      const Text(
+                      SizedBox(width: 10),
+                      Text(
                         'Unpaid Bills',
                         style: TextStyle(
                           fontSize: 20,
@@ -766,7 +810,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                           letterSpacing: -0.3,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       if ((stats['unpaidOrders'] as List? ?? []).isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -779,7 +823,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                           ),
                           child: Text(
                             '${(stats['unpaidOrders'] as List).length}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.dangerAlt,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -788,7 +832,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
 
                   if (stats['unpaidOrders'] == null ||
                       (stats['unpaidOrders'] as List).isEmpty)
@@ -815,15 +859,17 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
     return Column(
       children: [
         Icon(icon, color: color, size: 24),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
             fontSize: 12,
           ),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
@@ -845,7 +891,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.borderSubtle),
       ),
-      child: const Center(
+      child: Center(
         child: Column(
           children: [
             Text('🎉', style: TextStyle(fontSize: 32)),
@@ -866,11 +912,14 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
     String currency,
   ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.dangerAlt.withValues(alpha: 0.3), width: 0.5),
+        border: Border.all(
+          color: AppColors.dangerAlt.withValues(alpha: 0.3),
+          width: 0.5,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -891,7 +940,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                   ),
                   child: Text(
                     'Order #${order['id']}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.dangerAlt,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
@@ -909,16 +958,12 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             // Customer info
             Row(
               children: [
-                const Icon(
-                  Icons.person_outline,
-                  size: 14,
-                  color: AppColors.muted,
-                ),
-                const SizedBox(width: 6),
+                Icon(Icons.person_outline, size: 14, color: AppColors.muted),
+                SizedBox(width: 6),
                 Text(
                   order['customerName'] ?? 'Unknown Customer',
                   style: TextStyle(
@@ -929,22 +974,18 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Row(
               children: [
-                const Icon(
-                  Icons.phone_outlined,
-                  size: 14,
-                  color: AppColors.muted,
-                ),
-                const SizedBox(width: 6),
+                Icon(Icons.phone_outlined, size: 14, color: AppColors.muted),
+                SizedBox(width: 6),
                 Text(
                   order['customerPhone'] ?? 'No phone',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                  style: TextStyle(color: AppColors.muted, fontSize: 13),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             // Action buttons — row of 3
             Row(
               children: [
@@ -953,11 +994,15 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                   child: GestureDetector(
                     onTap: () => _showBillModal(order, currency),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0x22FFFFFF) : const Color(0x0C000000),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).dividerColor
+                            : Color(0x0C000000),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -967,11 +1012,13 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                             size: 16,
                             color: Theme.of(context).iconTheme.color,
                           ),
-                          const SizedBox(height: 3),
+                          SizedBox(height: 3),
                           Text(
                             'View Bill',
                             style: TextStyle(
-                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,
                             ),
@@ -981,17 +1028,21 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 // Print Bill
                 Expanded(
                   child: GestureDetector(
                     onTap: () => _printBillForUnpaid(order),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0x22FFFFFF) : const Color(0x0C000000),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).dividerColor
+                            : Color(0x0C000000),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1001,11 +1052,13 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                             size: 16,
                             color: Theme.of(context).iconTheme.color,
                           ),
-                          const SizedBox(height: 3),
+                          SizedBox(height: 3),
                           Text(
                             'Print',
                             style: TextStyle(
-                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,
                             ),
@@ -1015,7 +1068,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 // WhatsApp
                 Expanded(
                   child: GestureDetector(
@@ -1032,7 +1085,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0x4430D158)),
                       ),
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
@@ -1084,10 +1137,15 @@ class _HourlyRevenueChart extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.borderSubtle),
           ),
-          child: const Center(
+          child: Center(
             child: Text(
               'No orders recorded yet today',
-              style: TextStyle(color: Colors.white38, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.color?.withValues(alpha: 0.38),
+                fontSize: 13,
+              ),
             ),
           ),
         ),
@@ -1148,7 +1206,9 @@ class _HourlyRevenueChart extends StatelessWidget {
                 show: true,
                 horizontalInterval: maxVal / 4,
                 getDrawingHorizontalLine: (v) => FlLine(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.color?.withValues(alpha: 0.06),
                   strokeWidth: 0.8,
                 ),
                 drawVerticalLine: false,
@@ -1171,7 +1231,7 @@ class _HourlyRevenueChart extends StatelessWidget {
                     getTitlesWidget: (val, meta) {
                       final h = val.toInt();
                       if (!activeBars.containsKey(h)) {
-                        return const SizedBox.shrink();
+                        return SizedBox.shrink();
                       }
                       final label = h == 0
                           ? '12a'
@@ -1185,7 +1245,8 @@ class _HourlyRevenueChart extends StatelessWidget {
                         child: Text(
                           label,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
+                            color: Theme.of(context).textTheme.bodyLarge?.color
+                                ?.withValues(alpha: 0.4),
                             fontSize: 9,
                           ),
                         ),
@@ -1203,8 +1264,8 @@ class _HourlyRevenueChart extends StatelessWidget {
                     final label = h < 12 ? '$h AM' : '${h - 12} PM';
                     return BarTooltipItem(
                       '$label\n$currency${rod.toY.toStringAsFixed(0)}',
-                      const TextStyle(
-                        color: Colors.white,
+                      TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
                       ),
@@ -1236,7 +1297,7 @@ class _PaymentDonut extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = cash + online;
-    if (total == 0) return const SizedBox.shrink();
+    if (total == 0) return SizedBox.shrink();
 
     return SizedBox(
       height: 140,
@@ -1269,16 +1330,15 @@ class _PaymentDonut extends StatelessWidget {
             children: [
               Text(
                 '$currency${total.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
               ),
               Text(
                 'total',
                 style: TextStyle(
                   fontSize: 10,
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.color?.withValues(alpha: 0.4),
                 ),
               ),
             ],
@@ -1309,10 +1369,15 @@ class _TopSellingChart extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.borderSubtle),
           ),
-          child: const Center(
+          child: Center(
             child: Text(
               'No sales data yet',
-              style: TextStyle(color: Colors.white38, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.color?.withValues(alpha: 0.38),
+                fontSize: 13,
+              ),
             ),
           ),
         ),
@@ -1361,7 +1426,7 @@ class _TopSellingChart extends StatelessWidget {
                         Expanded(
                           child: Text(
                             name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1372,12 +1437,13 @@ class _TopSellingChart extends StatelessWidget {
                           '${qty.toInt()} sold · $currency${revenue.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+                            color: Theme.of(context).textTheme.bodyLarge?.color
+                                ?.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     LayoutBuilder(
                       builder: (_, constraints) => ClipRRect(
                         borderRadius: BorderRadius.circular(6),
@@ -1483,7 +1549,7 @@ class _AiPredictionCard extends StatelessWidget {
                         color: AppColors.orange.withValues(alpha: 0.4),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'AI · 7-day model',
                       style: TextStyle(
                         fontSize: 11,
@@ -1515,12 +1581,14 @@ class _AiPredictionCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               if (!hasData)
                 Text(
                   'Not enough data yet — predictions improve after 7 days of sales.',
                   style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.4),
+                    color: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.color?.withValues(alpha: 0.4),
                     fontSize: 13,
                   ),
                 )
@@ -1532,13 +1600,15 @@ class _AiPredictionCard extends StatelessWidget {
                       'Est. Tomorrow',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.55),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.55),
                       ),
                     ),
                     const Spacer(),
                     Text(
                       '$currency${prediction.toStringAsFixed(0)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
@@ -1547,7 +1617,7 @@ class _AiPredictionCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 // Confidence bar
                 Row(
                   children: [
@@ -1555,7 +1625,9 @@ class _AiPredictionCard extends StatelessWidget {
                       'Confidence',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.45),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.45),
                       ),
                     ),
                     const Spacer(),
@@ -1564,12 +1636,14 @@ class _AiPredictionCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
@@ -1581,20 +1655,22 @@ class _AiPredictionCard extends StatelessWidget {
                     minHeight: 6,
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.local_fire_department,
                       size: 14,
                       color: AppColors.amber,
                     ),
-                    const SizedBox(width: 5),
+                    SizedBox(width: 5),
                     Text(
                       'Predicted peak: $peakHours',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.55),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.55),
                       ),
                     ),
                   ],

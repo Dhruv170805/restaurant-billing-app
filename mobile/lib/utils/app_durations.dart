@@ -7,4 +7,3 @@ class AppDurations {
   static const Duration animationFast = Duration(milliseconds: 180);
   static const Duration animationNormal = Duration(milliseconds: 350);
 }
-

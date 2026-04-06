@@ -11,7 +11,9 @@ class _Shimmer extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
       baseColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE8E8E8),
-      highlightColor: isDark ? const Color(0xFF2E2E2E) : const Color(0xFFF5F5F5),
+      highlightColor: isDark
+          ? const Color(0xFF2E2E2E)
+          : const Color(0xFFF5F5F5),
       child: child,
     );
   }
@@ -387,24 +389,31 @@ class _SkKDSCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const _SkBox(width: 70, height: 18),
-            const Spacer(),
-            const _SkBox(width: 50, height: 22, radius: 10),
-          ]),
+          Row(
+            children: [
+              const _SkBox(width: 70, height: 18),
+              const Spacer(),
+              const _SkBox(width: 50, height: 22, radius: 10),
+            ],
+          ),
           const SizedBox(height: 8),
           const _SkBox(width: 80, height: 11),
           const SizedBox(height: 14),
           const Divider(color: Colors.black12),
           const SizedBox(height: 8),
-          ...List.generate(3, (_) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(children: [
-              const _SkBox(width: 24, height: 24, radius: 6),
-              const SizedBox(width: 10),
-              const _SkBox(width: 90, height: 13),
-            ]),
-          )),
+          ...List.generate(
+            3,
+            (_) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  const _SkBox(width: 24, height: 24, radius: 6),
+                  const SizedBox(width: 10),
+                  const _SkBox(width: 90, height: 13),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

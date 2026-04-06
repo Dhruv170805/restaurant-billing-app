@@ -36,7 +36,13 @@ class PdfGenerator {
     if (text == null) return '';
     // This is a simple fix to remove emojis that would otherwise render as boxes in PDFs
     // without a dedicated emoji font. It preserves standard alphanumeric and symbols.
-    return text.replaceAll(RegExp(r'[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]', unicode: true), '');
+    return text.replaceAll(
+      RegExp(
+        r'[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]',
+        unicode: true,
+      ),
+      '',
+    );
   }
 
   static Future<pw.Document> generateKOT(
@@ -48,7 +54,8 @@ class PdfGenerator {
     final regular = await _unicodeFont();
     final bold = await _unicodeFont(bold: true);
 
-    final itemsToPrint = overrideItems ??
+    final itemsToPrint =
+        overrideItems ??
         order.items.where((i) => i.quantity > i.printedQuantity).toList();
 
     if (itemsToPrint.isEmpty && overrideItems == null) {
@@ -280,7 +287,7 @@ class PdfGenerator {
                           settings['billGreeting'].toString().isNotEmpty
                       ? settings['billGreeting']
                       : (settings['restaurantTagline'] ??
-                          'Thank you for dining with us!'),
+                            'Thank you for dining with us!'),
                 ),
                 textAlign: pw.TextAlign.center,
                 style: pw.TextStyle(font: italic),

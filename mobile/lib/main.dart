@@ -49,14 +49,10 @@ Future<void> _runBackgroundTasks() async {
 
   // 1. Warm up cache (Async Future)
   await _warmUpCache();
-  
+
   // 2. Initialize Socket (Non-blocking call)
   SocketService().init();
 }
-
-
-
-
 
 /// Pre-warm the disk cache layer so screens load with stale data instantly.
 Future<void> _warmUpCache() async {

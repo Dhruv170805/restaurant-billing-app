@@ -53,7 +53,6 @@ class AppColors {
   );
 }
 
-
 /// KDS: orders flagged after these time thresholds
 class AppThresholds {
   AppThresholds._();
