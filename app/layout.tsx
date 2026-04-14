@@ -100,8 +100,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <img src="/logo.png" alt="" style={{ width: '60vmin', height: '60vmin', objectFit: 'contain' }} />
           </div>
 
-          <div style={{ position: 'relative', zIndex: 1, paddingTop: '4.8rem' }}>
-            <main className="container animate-fade-in">{children}</main>
+          <div style={{ position: 'relative', zIndex: 1, paddingTop: '4.8rem', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <main className="container animate-fade-in" style={{ flex: 1, width: '100%' }}>{children}</main>
+            <footer style={{ textAlign: 'center', padding: '1.5rem', opacity: 0.6, fontSize: '0.875rem' }}>
+              Made By Dhruv Patel
+            </footer>
           </div>
 
           <Toaster

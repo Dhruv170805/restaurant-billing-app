@@ -100,49 +100,62 @@ class _MainLayoutState extends State<MainLayout> {
         padding: EdgeInsets.only(
           left: 20,
           right: 20,
-          bottom: bottomPadding + 12,
+          bottom: bottomPadding + 4,
         ),
-        child: RepaintBoundary(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(36),
-            child: BackdropFilter(
-              // Reduced from 30 → 16: halves GPU work on every frame (iOS)
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                height: 68,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xCC000000)
-                      : Colors.white.withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(36),
-                  border: Border.all(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0x33444444)
-                        : Theme.of(context).dividerColor,
-                    width: 0.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RepaintBoundary(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(36),
+                child: BackdropFilter(
+                  // Reduced from 30 → 16: halves GPU work on every frame (iOS)
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    height: 68,
+                    decoration: BoxDecoration(
                       color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.black.withValues(alpha: 0.5)
-                          : Theme.of(
-                              context,
-                            ).shadowColor.withValues(alpha: 0.15),
-                      blurRadius: 30,
-                      offset: const Offset(0, 8),
+                          ? const Color(0xCC000000)
+                          : Colors.white.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(36),
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0x33444444)
+                            : Theme.of(context).dividerColor,
+                        width: 0.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.black.withValues(alpha: 0.5)
+                              : Theme.of(
+                                  context,
+                                ).shadowColor.withValues(alpha: 0.15),
+                          blurRadius: 30,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(
-                    _navItems.length,
-                    (index) => _buildNavItem(_navItems[index], index),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: List.generate(
+                        _navItems.length,
+                        (index) => _buildNavItem(_navItems[index], index),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              'Made By Dhruv Patel',
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.black38,
+              ),
+            ),
+          ],
         ),
       ),
     );
