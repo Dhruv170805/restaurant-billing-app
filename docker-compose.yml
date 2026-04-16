@@ -1,13 +1,70 @@
 services:
-  mongodb:
-    image: mongo:7.0
-    container_name: nexus-mongodb
+  # ── Database ────────────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexus-postgres
     restart: always
     ports:
-      - "27017:27017"
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: restaurant_saas
+      POSTGRES_USER: nexus_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-nexus_secret_change_me}
     volumes:
-      - mongodb_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus_admin -d restaurant_saas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # ── Cache + Queue Backend ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Object Storage (S3-compatible) ─────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: nexus-minio
+    restart: always
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO Console UI
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Dev Email Catch-all (Mailpit) ──────────────────────────────────────────
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: nexus-mailpit
+    restart: always
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI (http://localhost:8025)
+
+  # ── Next.js App ─────────────────────────────────────────────────────────────
   app:
     build:
       context: .
@@ -17,11 +74,110 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/restaurant_db
+      - DATABASE_URL=postgres://nexus_admin:${DB_PASSWORD:-nexus_secret_change_me}@postgres:5432/restaurant_saas
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=restaurant-saas
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - SMTP_FROM=noreply@nexuspos.local
       - PORT=3000
       - HOSTNAME=0.0.0.0
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-in-prod}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-change-in-prod}
+      - APP_URL=${APP_URL:-http://localhost:3000}
     depends_on:
-      - mongodb
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  # ── BullMQ Background Worker ───────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-worker
+    restart: always
+    command: node worker.js
+    environment:
+      - DATABASE_URL=postgres://nexus_admin:${DB_PASSWORD:-nexus_secret_change_me}@postgres:5432/restaurant_saas
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=restaurant-saas
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - SMTP_FROM=noreply@nexuspos.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  # ── SaaS Gateway (Nginx) ──────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: nexus-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+
+  # ── Optional: Observability (run with: docker compose --profile obs up) ─────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: nexus-prometheus
+    profiles: ["obs"]
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nexus-grafana
+    profiles: ["obs"]
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards
+
+  loki:
+    image: grafana/loki:latest
+    container_name: nexus-loki
+    profiles: ["obs"]
+    restart: always
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
 
 volumes:
-  mongodb_data:
+  postgres_data:
+  redis_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:

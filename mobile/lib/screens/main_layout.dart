@@ -179,7 +179,7 @@ class _MainLayoutState extends State<MainLayout> {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
           border: isSelected
-              ? Border.all(color: const Color(0x55FF6B00), width: 0.5)
+              ? Border.all(color: AppColors.orangeAlt.withValues(alpha: 0.35), width: 0.5)
               : null,
         ),
         child: Row(

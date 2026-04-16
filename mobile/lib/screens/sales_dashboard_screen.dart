@@ -13,6 +13,9 @@ import '../models/order.dart';
 import '../services/socket_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/brand_logo.dart';
+import '../widgets/marketing_templates.dart';
+import '../utils/marketing_generator.dart';
 
 class SalesDashboardScreen extends StatefulWidget {
   const SalesDashboardScreen({super.key});
@@ -190,6 +193,142 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to generate report: $e')));
     }
+  }
+
+  void _showMarketingDialog() {
+    final settings = Provider.of<PosProvider>(context, listen: false).settings;
+    final currency = settings['currencySymbol'] ?? '₹';
+    final topItems = List<Map<String, dynamic>>.from(stats['topItems'] ?? []);
+    
+    if (topItems.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No top-selling items to feature!')),
+        );
+      }
+      return;
+    }
+
+    final GlobalKey posterKey = GlobalKey();
+    int selectedTemplate = 0; // 0 for Spotlight, 1 for Bestsellers
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Marketing',
+      barrierColor: Colors.black.withValues(alpha: 0.9),
+      pageBuilder: (ctx, anim1, anim2) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Center(
+              child: Material(
+                color: Colors.transparent,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Preview Area
+                    Container(
+                      height: 500,
+                      width: 281, // 9:16 aspect ratio roughly
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            blurRadius: 40,
+                            spreadRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: RepaintBoundary(
+                          key: posterKey,
+                          child: selectedTemplate == 0 
+                            ? SpotlightPoster(
+                                restaurantName: settings['restaurantName'] ?? 'Our Restaurant',
+                                itemName: topItems[0]['name'] ?? 'Best Dish',
+                                price: (topItems[0]['revenue'] / (topItems[0]['qty'] == 0 ? 1 : topItems[0]['qty'])).toDouble(),
+                                currency: currency,
+                                tagline: settings['restaurantTagline'],
+                              )
+                            : BestsellersPoster(
+                                restaurantName: settings['restaurantName'] ?? 'Our Restaurant',
+                                items: topItems,
+                                currency: currency,
+                              ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Template Switcher
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _TemplateChip(
+                          label: 'Spotlight',
+                          isSelected: selectedTemplate == 0,
+                          onTap: () => setModalState(() => selectedTemplate = 0),
+                        ),
+                        const SizedBox(width: 12),
+                        _TemplateChip(
+                          label: 'Bestsellers',
+                          isSelected: selectedTemplate == 1,
+                          onTap: () => setModalState(() => selectedTemplate = 1),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+                    // Actions
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                try {
+                                  await MarketingGenerator.generateAndShare(
+                                    boundaryKey: posterKey,
+                                    fileName: 'marketing_poster_${DateTime.now().millisecondsSinceEpoch}',
+                                    text: "Check out our latest bestsellers at ${settings['restaurantName'] ?? 'our restaurant'}! 🚀",
+                                  );
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to share: $e')),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.rocket_launch_rounded),
+                              label: const Text('SHARE TO WHATSAPP'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx), // Correct context for pop
+                      child: Text(
+                        'Close',
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        );
+      },
+    );
   }
 
   /// Shows an in-app bill summary bottom sheet for an unpaid order
@@ -522,15 +661,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
-              title: Text(
-                'Sales',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
-                ),
-              ),
+              title: const BrandLogo(height: 28),
               background: ClipRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -790,6 +921,19 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                     currency: currency,
                   ),
 
+                  // ─── Marketing Center ──────────────────────────────
+                  const SizedBox(height: 32),
+                  const Text(
+                    '🎨 AI Marketing Center',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildMarketingCard(),
+
                   SizedBox(height: 28),
                   Row(
                     children: [
@@ -797,7 +941,7 @@ class _SalesDashboardScreenState extends State<SalesDashboardScreen> {
                         width: 4,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: AppColors.dangerAlt,
+                          color: AppColors.orangeAlt,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -1680,6 +1824,157 @@ class _AiPredictionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TemplateChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TemplateChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.white.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+extension _DashboardWidgets on _SalesDashboardScreenState {
+  Widget _buildMarketingCard() {
+    return GestureDetector(
+      onTap: _showMarketingDialog,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withValues(alpha: 0.15),
+              const Color(0xFF0B0B0F),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.auto_awesome_rounded, color: AppColors.primary),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Instant Viral Assets',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      Text(
+                        'AI-generated posters for WhatsApp Status',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.muted),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMarketingFeature(
+                    Icons.bolt_rounded,
+                    'Instant Info',
+                    'Real-time Data',
+                  ),
+                ),
+                Expanded(
+                  child: _buildMarketingFeature(
+                    Icons.palette_rounded,
+                    'Branded',
+                    'Your Colors',
+                  ),
+                ),
+                Expanded(
+                  child: _buildMarketingFeature(
+                    Icons.share_rounded,
+                    '1-Tap Share',
+                    'WhatsApp',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarketingFeature(IconData icon, String title, String subtitle) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: AppColors.primary.withValues(alpha: 0.8)),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        ),
+        Text(
+          subtitle,
+          style: const TextStyle(fontSize: 9, color: AppColors.muted),
+        ),
+      ],
     );
   }
 }

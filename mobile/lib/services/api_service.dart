@@ -8,13 +8,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/menu_item.dart';
 import '../models/order.dart';
 import '../utils/app_durations.dart';
+import 'auth_service.dart';
 
 // ─── Persistent Cache Keys ────────────────────────────────────────────────────
 class _CacheKeys {
   static const menuData = 'cache_v1_menu_data';
   static const menuTime = 'cache_v1_menu_time';
-  static const settingsData = 'cache_v1_settings_data';
-  static const settingsTime = 'cache_v1_settings_time';
   static const dashboardData = 'cache_v1_dashboard_data';
   static const dashboardTime = 'cache_v1_dashboard_time';
 }
@@ -76,8 +75,6 @@ class ApiService {
   // ─── In-memory cache (fast path) ─────────────────────────────────────────
   static List<MenuItem>? _menuCache;
   static DateTime? _menuCacheTime;
-  static Map<String, dynamic>? _settingsCache;
-  static DateTime? _settingsCacheTime;
   static Map<String, dynamic>? _dashboardCache;
   static DateTime? _dashboardCacheTime;
 
@@ -136,11 +133,6 @@ class ApiService {
     _menuCacheTime = null;
   }
 
-  static void invalidateSettingsCache() {
-    _settingsCache = null;
-    _settingsCacheTime = null;
-  }
-
   static void invalidateDashboardCache() {
     _dashboardCache = null;
     _dashboardCacheTime = null;
@@ -149,8 +141,6 @@ class ApiService {
   static void invalidateAll() {
     _menuCache = null;
     _menuCacheTime = null;
-    _settingsCache = null;
-    _settingsCacheTime = null;
     _dashboardCache = null;
     _dashboardCacheTime = null;
   }
@@ -160,8 +150,6 @@ class ApiService {
     for (final key in [
       _CacheKeys.menuData,
       _CacheKeys.menuTime,
-      _CacheKeys.settingsData,
-      _CacheKeys.settingsTime,
       _CacheKeys.dashboardData,
       _CacheKeys.dashboardTime,
     ]) {
@@ -202,7 +190,7 @@ class ApiService {
     return _requestWithRetry(
       () => _client.get(
         Uri.parse('$url$path'),
-        headers: const {'Content-Type': 'application/json'},
+        headers: AuthService().authHeaders,
       ),
       'GET $path',
     );
@@ -213,7 +201,7 @@ class ApiService {
     return _requestWithRetry(
       () => _client.post(
         Uri.parse('$url$path'),
-        headers: const {'Content-Type': 'application/json'},
+        headers: AuthService().authHeaders,
         body: json.encode(body),
       ),
       'POST $path',
@@ -225,7 +213,7 @@ class ApiService {
     return _requestWithRetry(
       () => _client.put(
         Uri.parse('$url$path'),
-        headers: const {'Content-Type': 'application/json'},
+        headers: AuthService().authHeaders,
         body: json.encode(body),
       ),
       'PUT $path',
@@ -237,7 +225,7 @@ class ApiService {
     return _requestWithRetry(
       () => _client.delete(
         Uri.parse('$url$path'),
-        headers: const {'Content-Type': 'application/json'},
+        headers: AuthService().authHeaders,
       ),
       'DELETE $path',
     );
@@ -299,15 +287,7 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> fetchSettingsFromDisk() async {
-    final raw = await _diskRead(_CacheKeys.settingsData);
-    if (raw == null) return null;
-    try {
-      return json.decode(raw) as Map<String, dynamic>;
-    } catch (_) {
-      return null;
-    }
-  }
+
 
   Future<Map<String, dynamic>?> fetchDashboardStatsFromDisk() async {
     final raw = await _diskRead(_CacheKeys.dashboardData);
@@ -330,38 +310,7 @@ class ApiService {
     throw Exception('Failed to load orders (${response.statusCode})');
   }
 
-  // ─── Settings (memory → disk → network) ─────────────────────────────────
-  Future<Map<String, dynamic>> fetchSettings({
-    bool forceRefresh = false,
-  }) async {
-    if (!forceRefresh &&
-        _settingsCache != null &&
-        _isMemoryCacheValid(_settingsCacheTime)) {
-      return _settingsCache!;
-    }
-    if (!forceRefresh && await _isDiskCacheValid(_CacheKeys.settingsTime)) {
-      final raw = await _diskRead(_CacheKeys.settingsData);
-      if (raw != null) {
-        try {
-          _settingsCache = json.decode(raw) as Map<String, dynamic>;
-          _settingsCacheTime = DateTime.now();
-          return _settingsCache!;
-        } catch (_) {}
-      }
-    }
-    final response = await _get('/settings');
-    if (response.statusCode == 200) {
-      _settingsCache = json.decode(response.body) as Map<String, dynamic>;
-      _settingsCacheTime = DateTime.now();
-      await _diskWrite(
-        _CacheKeys.settingsData,
-        _CacheKeys.settingsTime,
-        response.body,
-      );
-      return _settingsCache!;
-    }
-    throw Exception('Failed to load settings (${response.statusCode})');
-  }
+
 
   // ─── Dashboard Stats (memory → disk → network) ───────────────────────────
   Future<Map<String, dynamic>> fetchDashboardStats({
@@ -396,10 +345,9 @@ class ApiService {
     throw Exception('Failed to load dashboard stats (${response.statusCode})');
   }
 
-  /// Load menu and settings in parallel for startup optimisation.
-  Future<(List<MenuItem>, Map<String, dynamic>)> fetchInitialData() async {
-    final results = await Future.wait([fetchMenuItems(), fetchSettings()]);
-    return (results[0] as List<MenuItem>, results[1] as Map<String, dynamic>);
+  /// Load menu in background for startup optimisation.
+  Future<List<MenuItem>> fetchInitialData() async {
+    return await fetchMenuItems();
   }
 
   // ─── Create Order ─────────────────────────────────────────────────────────
@@ -452,13 +400,7 @@ class ApiService {
     invalidateMenuCache();
   }
 
-  Future<void> updateSettings(Map<String, dynamic> settingsData) async {
-    final response = await _put('/settings', settingsData);
-    if (response.statusCode != 200) {
-      throw Exception('Failed to update settings (${response.statusCode})');
-    }
-    invalidateSettingsCache();
-  }
+
 
   Future<void> deleteMenuItem(int id) async {
     final response = await _delete('/menu/$id');

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { getTables } from '@/lib/db'
 import { handleApiError } from '@/lib/errors'
+import { requireAuth } from '@/lib/middleware/auth'
 
-export async function GET() {
+export const GET = requireAuth(async (req, { tenant }) => {
   try {
-    const tables = await getTables()
+    const tables = await getTables(tenant.slug)
 
     // Prevent caching — table status must always be fresh
     return new NextResponse(JSON.stringify(tables), {
@@ -17,4 +18,4 @@ export async function GET() {
   } catch (error) {
     return handleApiError(error)
   }
-}
+})

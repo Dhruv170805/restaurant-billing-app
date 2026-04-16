@@ -1,6 +1,7 @@
 import { getTables } from '@/lib/db/tables'
 import { getOrder } from '@/lib/db/orders'
-import { getSettingsCompat } from '@/lib/settings'
+import { getTenantBySlug } from '@/lib/db/tenants'
+import { headers } from 'next/headers'
 import { fmtPrice } from '@/lib/format'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -9,10 +10,17 @@ export default async function CustomerTableOrderPage({ params }: { params: Promi
   const tableIdStr = resolvedParams.id
   const tableNumber = parseInt(tableIdStr)
   
-  const tables = await getTables()
+  const headersList = await headers()
+  const tenantSlug = headersList.get('X-Tenant-ID') || 'default'
+  const tables = await getTables(tenantSlug)
   const table = tables.find(t => t.number === tableNumber)
   
-  const settings = await getSettingsCompat()
+  const tenant = await getTenantBySlug(tenantSlug)
+  const currencyParams = { 
+     currencyLocale: tenant?.config?.currencyLocale || 'en-IN', 
+     currencyCode: tenant?.config?.currencyCode || 'INR', 
+     currencySymbol: tenant?.config?.currencySymbol || '₹' 
+  }
 
   if (!table || !table.order) {
     return (
@@ -65,10 +73,10 @@ export default async function CustomerTableOrderPage({ params }: { params: Promi
             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontWeight: 600, color: 'var(--foreground)' }}>{item.name}</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--foreground-muted)' }}>Qty: {item.quantity} × {fmtPrice(item.price, { currencyLocale: settings.currency.locale, currencyCode: settings.currency.code, currencySymbol: settings.currency.symbol })}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--foreground-muted)' }}>Qty: {item.quantity} × {fmtPrice(item.price, currencyParams)}</div>
               </div>
               <div style={{ fontWeight: 700, color: 'var(--foreground)' }}>
-                {fmtPrice(item.price * item.quantity, { currencyLocale: settings.currency.locale, currencyCode: settings.currency.code, currencySymbol: settings.currency.symbol })}
+                {fmtPrice(item.price * item.quantity, currencyParams)}
               </div>
             </div>
           ))}
@@ -77,12 +85,12 @@ export default async function CustomerTableOrderPage({ params }: { params: Promi
         <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--glass-border)', color: 'var(--foreground-muted)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
             <span>Subtotal</span>
-            <span>{fmtPrice(subtotal, { currencyLocale: settings.currency.locale, currencyCode: settings.currency.code, currencySymbol: settings.currency.symbol })}</span>
+            <span>{fmtPrice(subtotal, currencyParams)}</span>
           </div>
           {taxAmount > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span>Tax</span>
-              <span>{fmtPrice(taxAmount, { currencyLocale: settings.currency.locale, currencyCode: settings.currency.code, currencySymbol: settings.currency.symbol })}</span>
+              <span>{fmtPrice(taxAmount, currencyParams)}</span>
             </div>
           )}
           <div style={{ 
@@ -96,7 +104,7 @@ export default async function CustomerTableOrderPage({ params }: { params: Promi
             color: 'var(--foreground)'
           }}>
             <span>Grand Total</span>
-            <span style={{ color: 'var(--primary-light)' }}>{fmtPrice(order.total, { currencyLocale: settings.currency.locale, currencyCode: settings.currency.code, currencySymbol: settings.currency.symbol })}</span>
+            <span style={{ color: 'var(--primary-light)' }}>{fmtPrice(order.total, currencyParams)}</span>
           </div>
         </div>
       </div>

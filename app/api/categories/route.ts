@@ -5,48 +5,50 @@ import { getCategories, addCategory, updateCategory, deleteCategory } from '@/li
 import { handleApiError, ValidationError } from '@/lib/errors'
 import { validateStringLength, validatePositiveInteger } from '@/lib/validation'
 
-export async function GET() {
+import { requireAuth } from '@/lib/middleware/auth'
+
+export const GET = requireAuth(async (req, { tenant }) => {
   try {
-    const categories = await getCategories()
+    const categories = await getCategories(tenant.slug)
     return NextResponse.json(categories)
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function POST(request: Request) {
+export const POST = requireAuth(async (req, { tenant }) => {
   try {
-    const body = await request.json()
+    const body = await req.json()
 
     const name = validateStringLength(body.name, 'Category name', 1, 50).toUpperCase()
 
     // Check for duplicates
-    const existing = (await getCategories()).find((c) => c.name === name)
+    const existing = (await getCategories(tenant.slug)).find((c) => c.name === name)
     if (existing) {
       throw new ValidationError(`Category "${name}" already exists`, { existingId: existing.id })
     }
 
-    const category = await addCategory(name)
+    const category = await addCategory(tenant.slug, name)
     return NextResponse.json(category, { status: 201 })
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function PUT(request: Request) {
+export const PUT = requireAuth(async (req, { tenant }) => {
   try {
-    const body = await request.json()
+    const body = await req.json()
 
     const id = validatePositiveInteger(body.id, 'Category ID')
     const name = validateStringLength(body.name, 'Category name', 1, 50).toUpperCase()
 
     // Check for duplicates (excluding current category)
-    const existing = (await getCategories()).find((c) => c.name === name && c.id !== id)
+    const existing = (await getCategories(tenant.slug)).find((c) => c.name === name && c.id !== id)
     if (existing) {
       throw new ValidationError(`Category "${name}" already exists`, { existingId: existing.id })
     }
 
-    const updated = await updateCategory(id, name)
+    const updated = await updateCategory(tenant.slug, id, name)
     if (!updated) {
       throw new ValidationError('Category not found', { id })
     }
@@ -55,11 +57,11 @@ export async function PUT(request: Request) {
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function DELETE(request: Request) {
+export const DELETE = requireAuth(async (req, { tenant }) => {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = new URL(req.url)
     const idParam = searchParams.get('id')
 
     if (!idParam) {
@@ -71,7 +73,7 @@ export async function DELETE(request: Request) {
       throw new ValidationError('Category ID must be a positive integer')
     }
 
-    const deleted = await deleteCategory(id)
+    const deleted = await deleteCategory(tenant.slug, id)
     if (!deleted) {
       throw new ValidationError(
         'Cannot delete: category has menu items or does not exist. Remove all items from this category first.',
@@ -83,4 +85,4 @@ export async function DELETE(request: Request) {
   } catch (error) {
     return handleApiError(error)
   }
-}
+})

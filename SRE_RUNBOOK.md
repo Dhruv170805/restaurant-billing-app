@@ -1,91 +1,90 @@
-# 🛡️ Site Reliability Engineering (SRE) Runbook
+# 🛡️ Site Reliability Engineering (SRE) Runbook: The Nexus Standard
 
-## High-Availability Operations Guide — Nexus POS Ecosystem
+## Operational Excellence & High-Availability Protocol
 
-This document defines the operational standards and disaster recovery protocols for the Nexus POS environment. Our goal is to ensure **99.9% availability** of core billing services during peak restaurant floor hours.
-
----
-
-## 🏛️ 1. Infrastructure Architecture
-
-The system is a distributed hybrid architecture:
-- **Global Edge**: Next.js 15 App Router deployed on Vercel.
-- **Real-time Gateway**: Node.js WebSocket engine (Socket.io).
-- **Data Persistence**: MongoDB Atlas Cluster (sharded with replica sets).
-- **Edge Client**: Native Flutter mobile fleet (iOS/Android).
+This document defines the rigorous operational standards and disaster recovery (DR) protocols for the Nexus POS SaaS ecosystem. Our mandate is to preserve **Financial Fidelity** and **Operational Continuity** across all tenants with a target availability of **99.95%**.
 
 ---
 
-## 💾 2. Data Persistence & Lifecycle
+## 📊 1. Service Level Management (SLOs)
 
-### 2.1 7-Day Auto-Purge (TTL) Strategy
-To maintain O(1) performance in a high-throughput kitchen, Nexus POS implements a **partial TTL (Time-To-Live) index** for data pruning. This keeps the active data set small and fast while ensuring historical records are archived or deleted.
+We measure success through three primary Service Level Indicators:
 
-```javascript
-// lib/db/init.ts - TTL implementation
-db.collection('orders').createIndex(
-  { createdAt: 1 },
-  {
-    expireAfterSeconds: 7 * 24 * 60 * 60, // 7 days
-    partialFilterExpression: { status: 'PAID' },
-    name: 'ttl_paid_orders_7_days'
-  }
-);
-```
-
-### 2.2 Manual Backups (mongodump)
-```bash
-# Production Cluster Snapshot
-mongodump --uri="mongodb+srv://<user>:<pwd>@cluster0.abc.mongodb.net/restaurant_db" --archive > full_backup_$(date +%F).archive
-```
+| Indicator | Objective (SLO) | Measurement Point |
+| :--- | :--- | :--- |
+| **Availability** | 99.95% | Uptime of `/api/health` over 30 days. |
+| **API Latency** | < 150ms (p95) | Measured at the Cloud Gateway edge. |
+| **Synchronization** | < 50ms (p90) | WebSocket propagation delta (Server → Client). |
+| **Data Durability** | 99.999% | MongoDB Atlas Point-in-Time Recovery success. |
 
 ---
 
-## 🆘 3. Global Incident Response Matrix
+## 🏛️ 2. Infrastructure Architecture (Defense-in-Depth)
 
-| Symptom | Severity | Potential Cause | Resolution |
+The Nexus infrastructure is built on a **Zero Trust** foundation:
+- **Tenant Context**: Every request is cryptographically bound to a tenant ID via JWT claims.
+- **State Segregation**: Redis L1 cache uses tenant-prefixed keys to prevent cross-talk.
+- **Persistence Isolation**: MongoDB compound indexes `{ tenantId: 1, ... }` ensure physical and logical separation of financial records.
+
+---
+
+## 🚨 3. Incident Management Lifecycle
+
+### Phase 1: Detection & Triage
+- **Automated**: Prometheus alerts fire when P95 latency exceeds 500ms for > 2 mins.
+- **Manual**: Staff reporting via `PROD_URL/api/health` status page.
+
+### Phase 2: Mitigation
+1.  **Redis Failover**: If L1 cache is unreachable, system bypasses to L2 (Atlas).
+2.  **Traffic Shifting**: Redirect API traffic if a specific regional cluster is degraded.
+
+### Phase 3: Root Cause Analysis (RCA)
+All Critical (P0) incidents require a blameless post-mortem document within 48 hours of resolution.
+
+---
+
+## 🆘 4. Global Incident Matrix
+
+| Symptom | Severity | Potential Cause | Immediate Resolution |
 | :--- | :--- | :--- | :--- |
-| **Mobile Timeout** | High | Network jitter or missing HTTP prefix | 1. Verify `API_BASE_URL` in `.env`. 2. Check corporate firewall whitelisting. |
-| **DB Connection Error** | Critical | Atlas IP whitelist block | 1. Whitelist Vercel outbound IPs in Atlas. 2. Verify `MONGODB_URI` string. |
-| **WebSocket Failure** | Medium | Load balancer connection termination | 1. Ensure `transports: ['websocket']` is enforced. 2. Verify Vercel WebSocket limit. |
-| **404 Socket Error** | Medium | Infrastructure mismatch (Vercel) | ⚠️ **Note**: Vercel Serverless doesn't support Socket.io. App will fallback to 12s polling. |
+| **Tenant Cross-Talk** | P0 (Critical) | Middleware Logic Error | 1. Maintenance Mode ON. 2. Revert last Deploy. |
+| **Write Latency Spike** | P1 (High) | Atlas Cluster Throttling | 1. Scale Atlas Tier. 2. Enable Query Profiling. |
+| **Socket Drop-off** | P2 (Medium) | LB Connection Timeout | 1. Verify Keep-Alive headers. 2. Cycle Gateway pods. |
 
 ---
 
-## 🔌 4. WebSocket Connectivity Architecture
+## 🔒 5. Zero Trust Security Model
 
-### 4.1 Hybrid Real-time Strategy
-Nexus POS uses a tiered approach for event propagation:
-1.  **Tier 1 (WebSocket)**: Active during local development or when hosted on a dedicated Node.js server (Railway/Render/Docker).
-2.  **Tier 2 (Long Polling)**: Automatic fallback if WebSocket upgrade fails (e.g., standard Vercel deployments).
-3.  **Tier 3 (Background Poll)**: 12-second interval state synchronization when the Real-time Gateway is unreachable.
-
-### 4.2 Known Limitation: Vercel Edge
-The standard Next.js deployment on Vercel returns a `404` for `/api/socket/io` because the underlying Socket.io server cannot bind to the ephemeral serverless socket. To enable full real-time capabilities in production, the backend should be migrated to a persistent environment defined in the `Dockerfile`.
-
-## 📊 4. Monitoring & SLOs
-
-- **Availability**: 99.9% target. Point monitors to `PROD_URL/api/health`.
-- **P95 Latency**: < 120ms for complex order placements.
-- **Sync Jitter**: < 20ms for WebSocket state propagation.
+Nexus adheres to **Principle of Least Privilege**:
+- **JWT Binding**: Access tokens are scoped to a single `tenantId` and `role`.
+- **Audit Trails**: Every write operation is logged with a fingerprint (IP, User Agent, Timestamp) via `lib/audit.ts`.
+- **Isolation Verification**: Weekly execution of `scripts/military_isolation_test.mjs`.
 
 ---
 
-## 🔒 5. Environmental Security Checklist
+## 💾 6. High-Availability & Disaster Recovery (DR)
+
+### 6.1 RTO & RPO Targets
+- **Recovery Time Objective (RTO)**: < 30 minutes (Full system restore).
+- **Recovery Point Objective (RPO)**: < 1 minute (Data loss limit).
+
+### 6.2 The "Game Day" Protocol
+Quarterly chaos engineering exercises where we simulate:
+1.  Database partition failure.
+2.  Tenant-specific "Traffic Bomb" (DDoS).
+3.  Redis cache poisoning.
+
+---
+
+## 📜 7. Environmental Integrity Checklist
 
 | Variable | Priority | Description |
 | :--- | :--- | :--- |
-| `MONGODB_URI` | Critical | Primary connection string for Atlas cluster. |
-| `NODE_ENV` | High | Set to `production` in Vercel to enable edge optimizations. |
-| `OWNER_PHONE` | High | WhatsApp Business number for CRM deep-linking. |
-| `API_BASE_URL` | Critical | (Mobile) Target for the Flutter network layer. |
+| `MONGODB_URI` | Critical | Primary Persistence (Atlas). |
+| `REDIS_URL` | High | Edge Caching & Session Pinning. |
+| `APP_DOMAIN` | High | Root Domain for Subdomain Discovery. |
+| `METRICS_TOKEN` | Medium | Authentication for Prometheus Scraper. |
 
 ---
 
-## 🚀 6. Scalability Matrix
-
-- **Vertical**: Managed by Vercel Serverless (auto-scaling compute).
-- **Horizontal**: MongoDB Atlas handles sharding and scaling on demand.
-- **Edge**: Next.js 15 uses Partial Prerendering (PPR) for maximum responsiveness.
-
-**Nexus POS — Stability is Efficiency.**
+**Nexus POS — Stability is Efficiency. Efficiency is Profit.**

@@ -1,24 +1,27 @@
 import { MetadataRoute } from 'next'
-import { getSettingsCompat } from '@/lib/settings'
+import { getTenantBySlug } from '@/lib/db/tenants'
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
     // Graceful fallback during build-time if MongoDB is not configured or unreachable
-    let name = 'Restaurant' // Default name
+    const defaultData = { name: 'NEXUS POS', theme: '#f37c22' }
     try {
-        const settings = await getSettingsCompat()
-        name = settings.restaurant.name
-    } catch {
-        console.warn('⚠️ Could not connect to DB for manifest generation. Using default name.')
+        const tenant = await getTenantBySlug('default')
+        if (tenant) {
+            defaultData.name = tenant.name
+            defaultData.theme = tenant.theme.primary
+        }
+    } catch (e) {
+        // Ignore db errors during next build phase
     }
 
     return {
-        name: `${name} POS`,
-        short_name: name,
-        description: `Professional Point of Sale and Billing System for ${name}.`,
+        name: defaultData.name,
+        short_name: defaultData.name,
+        description: 'Multi-Tenant Restaurant POS System',
         start_url: '/',
         display: 'standalone',
         background_color: '#0a0a0a',
-        theme_color: '#d97706',
+        theme_color: defaultData.theme,
         icons: [
             {
                 src: '/logo.png',

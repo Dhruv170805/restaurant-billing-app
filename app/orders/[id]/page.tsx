@@ -11,6 +11,7 @@ import { fetcher } from '@/lib/fetcher'
 
 import type { AppSettings, Order } from '@/lib/db'
 import type { DbOrderItem } from '@/lib/db/schema'
+import { getOrderSharingLinks } from '@/lib/services/social'
 
 export default function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -80,6 +81,8 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const subtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const taxAmount = order.total - subtotal
 
+  const shareLinks = getOrderSharingLinks(order, { name: settings?.restaurantName, config: settings })
+
   return (
     <div className="max-width-lg mx-auto p-4">
       {/* Print Styles - 80mm thermal receipt */}
@@ -138,6 +141,27 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
           <a href={`/orders/${order.id}/kot`} className="btn btn-secondary">
             🎫 Kitchen Token
           </a>
+          
+          {/* Social Sharing */}
+          <div className="flex gap-2">
+            <a 
+              href={shareLinks.whatsapp} 
+              target="_blank" 
+              className="btn" 
+              style={{ background: '#25D366', color: 'white', border: 'none', padding: '0.5rem 0.8rem' }}
+              title="Share on WhatsApp"
+            >
+              WhatsApp
+            </a>
+            <a 
+              href={shareLinks.instagram} 
+              className="btn" 
+              style={{ background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', color: 'white', border: 'none', padding: '0.5rem 0.8rem' }}
+              title="Share on Instagram"
+            >
+              Instagram
+            </a>
+          </div>
         </div>
       </div>
 

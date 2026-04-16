@@ -5,11 +5,12 @@ import { DbOrder, DbMenuItem } from './schema'
 import { upsertCustomerRecord } from './customers'
 import { emitEvent } from '../socket'
 
-export async function getOrders(): Promise<Order[]> {
-  return (await getOrdersPaginated(1, 1000)).orders
+export async function getOrders(tenantId: string): Promise<Order[]> {
+  return (await getOrdersPaginated(tenantId, 1, 1000)).orders
 }
 
 export async function getOrdersPaginated(
+  tenantId: string,
   page: number = 1,
   limit: number = 20
 ): Promise<PaginatedOrders> {
@@ -17,10 +18,11 @@ export async function getOrdersPaginated(
   const offset = (page - 1) * limit
 
   const ordersCollection = db.collection<DbOrder>('orders')
-  const total = await ordersCollection.countDocuments()
+  const baseFilter = { tenantId }
+  const total = await ordersCollection.countDocuments(baseFilter)
 
   const docs = await ordersCollection
-    .find()
+    .find(baseFilter)
     .sort({ createdAt: -1 })
     .skip(offset)
     .limit(limit)
@@ -37,11 +39,12 @@ export async function getOrdersPaginated(
   }
 }
 
-export async function getOrdersByDateRange(from: string, to: string): Promise<Order[]> {
+export async function getOrdersByDateRange(tenantId: string, from: string, to: string): Promise<Order[]> {
   const db = await ensureInitialized()
   const docs = await db
     .collection<DbOrder>('orders')
     .find({
+      tenantId,
       createdAt: { $gte: from, $lte: to },
     })
     .sort({ createdAt: -1 })
@@ -50,14 +53,17 @@ export async function getOrdersByDateRange(from: string, to: string): Promise<Or
   return docs.map((doc) => ({ ...doc, id: doc._id }) as unknown as Order)
 }
 
-export async function getOrder(id: number): Promise<Order | undefined> {
+export async function getOrder(id: number, tenantId?: string): Promise<Order | undefined> {
   const db = await ensureInitialized()
-  const doc = await db.collection<DbOrder>('orders').findOne({ _id: id })
+  const filter: any = { _id: id }
+  if (tenantId) filter.tenantId = tenantId
+  const doc = await db.collection<DbOrder>('orders').findOne(filter)
   if (!doc) return undefined
   return { ...doc, id: doc._id } as unknown as Order
 }
 
 export async function createOrder(
+  tenantId: string,
   items: OrderItem[],
   _clientTotal: number,
   tableNumber: number,
@@ -101,6 +107,7 @@ export async function createOrder(
 
   const newOrder: DbOrder = {
     _id: orderId,
+    tenantId,
     tokenNumber,
     tableNumber,
     status: 'PENDING',
@@ -122,9 +129,9 @@ export async function createOrder(
   return order
 }
 
-export async function addItemsToOrder(orderId: number, items: OrderItem[]): Promise<Order> {
+export async function addItemsToOrder(tenantId: string, orderId: number, items: OrderItem[]): Promise<Order> {
   const db = await ensureInitialized()
-  const order = await db.collection<DbOrder>('orders').findOne({ _id: orderId })
+  const order = await db.collection<DbOrder>('orders').findOne({ _id: orderId, tenantId })
   if (!order) throw new Error('Order not found')
   if (order.status !== 'PENDING') throw new Error('Can only add items to PENDING orders')
 
@@ -175,6 +182,7 @@ export async function addItemsToOrder(orderId: number, items: OrderItem[]): Prom
 }
 
 export async function updateOrderStatus(
+  tenantId: string,
   id: number,
   status: 'PENDING' | 'PAID' | 'UNPAID' | 'CANCELLED',
   paymentMethod?: 'CASH' | 'ONLINE' | 'UNPAID',
@@ -190,7 +198,7 @@ export async function updateOrderStatus(
   if (updates?.customerName) updateDoc.customerName = updates.customerName
   if (updates?.customerPhone) updateDoc.customerPhone = updates.customerPhone
 
-  const result = await db.collection<DbOrder>('orders').updateOne({ _id: id }, { $set: updateDoc })
+  const result = await db.collection<DbOrder>('orders').updateOne({ _id: id, tenantId }, { $set: updateDoc })
 
   if (result.matchedCount === 0) return null
 
@@ -203,7 +211,9 @@ export async function updateOrderStatus(
     const phone = updatedOrder.customerPhone
     if (name && phone) {
       // Async fire-and-forget to upsert into customer database
-      upsertCustomerRecord(name, phone, updatedOrder.total).catch(e => console.error('Failed CRM update:', e))
+      if (updatedOrder.tenantId) {
+         upsertCustomerRecord(updatedOrder.tenantId, name, phone, updatedOrder.total).catch(e => console.error('Failed CRM update:', e))
+      }
     }
   }
 
@@ -211,15 +221,15 @@ export async function updateOrderStatus(
   return updatedOrder
 }
 
-export async function deleteOrder(id: number): Promise<boolean> {
+export async function deleteOrder(tenantId: string, id: number): Promise<boolean> {
   const db = await ensureInitialized()
-  const result = await db.collection<DbOrder>('orders').deleteOne({ _id: id })
+  const result = await db.collection<DbOrder>('orders').deleteOne({ _id: id, tenantId })
   return result.deletedCount > 0
 }
 
-export async function markKOTPrinted(orderId: number): Promise<Order | null> {
+export async function markKOTPrinted(tenantId: string, orderId: number): Promise<Order | null> {
   const db = await ensureInitialized()
-  const order = await db.collection<DbOrder>('orders').findOne({ _id: orderId })
+  const order = await db.collection<DbOrder>('orders').findOne({ _id: orderId, tenantId })
   if (!order) return null
 
   const newItems = [...(order.items || [])]

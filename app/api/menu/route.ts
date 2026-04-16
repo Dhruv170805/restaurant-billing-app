@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-import { getMenuItems, addMenuItem } from '@/lib/db'
+import { listPgMenuItems, createPgMenuItem } from '@/lib/db/postgres_menu'
 import { handleApiError, ValidationError } from '@/lib/errors'
 import {
   validateStringLength,
@@ -9,18 +9,20 @@ import {
   validatePositiveInteger,
 } from '@/lib/validation'
 
-export async function GET() {
+import { requireAuth } from '@/lib/middleware/auth'
+
+export const GET = requireAuth(async (req, { tenant }) => {
   try {
-    const items = await getMenuItems()
+    const items = await listPgMenuItems(tenant.id)
     return NextResponse.json(items)
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function POST(request: Request) {
+export const POST = requireAuth(async (req, { tenant }) => {
   try {
-    const body = await request.json()
+    const body = await req.json()
 
     const name = validateStringLength(body.name, 'Item name', 1, 100)
     const price = validatePositiveNumber(body.price, 'Price')
@@ -29,13 +31,15 @@ export async function POST(request: Request) {
     // Round price to 2 decimal places
     const roundedPrice = Math.round(price * 100) / 100
 
-    const item = await addMenuItem(name, roundedPrice, categoryId)
-    if (!item) {
-      throw new ValidationError('Invalid category ID — category does not exist', { categoryId })
-    }
+    const item = await createPgMenuItem({
+      tenantId: tenant.id,
+      name,
+      price: roundedPrice,
+      categoryId
+    })
 
     return NextResponse.json(item, { status: 201 })
   } catch (error) {
     return handleApiError(error)
   }
-}
+})

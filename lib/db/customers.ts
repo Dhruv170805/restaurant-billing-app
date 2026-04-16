@@ -1,7 +1,7 @@
 import { ensureInitialized } from './mongo'
 import { DbCustomer } from './schema'
 
-export async function upsertCustomerRecord(name: string, phone: string, amountSpent: number): Promise<void> {
+export async function upsertCustomerRecord(tenantId: string, name: string, phone: string, amountSpent: number): Promise<void> {
     const db = await ensureInitialized()
 
     // Format phone to extract numerical value (fallback to raw if formatting fails)
@@ -11,9 +11,10 @@ export async function upsertCustomerRecord(name: string, phone: string, amountSp
     const now = new Date().toISOString()
 
     await db.collection<DbCustomer>('customers').updateOne(
-        { _id: cleanPhone },
+        { _id: `${tenantId}_${cleanPhone}` },
         {
             $set: {
+                tenantId: tenantId,
                 name: name, // Always update to the latest name
                 phone: cleanPhone,
                 lastVisit: now
@@ -27,10 +28,10 @@ export async function upsertCustomerRecord(name: string, phone: string, amountSp
     )
 }
 
-export async function getCustomers(): Promise<DbCustomer[]> {
+export async function getCustomers(tenantId: string): Promise<DbCustomer[]> {
     const db = await ensureInitialized()
     const customers = await db.collection<DbCustomer>('customers')
-        .find()
+        .find({ tenantId })
         .sort({ lastVisit: -1 })
         .toArray()
 

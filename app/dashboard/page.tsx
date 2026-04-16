@@ -559,7 +559,7 @@ export default function DashboardPage() {
                         {order.customerPhone && (
                           <a
                             href={`https://wa.me/${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                              `Hello ${order.customerName || 'there'},\n\nReminder from ${settings?.restaurantName || 'us'}: your bill of ${fmtPrice(total)} for Order #${order.id} is unpaid. Please settle at your earliest convenience. Thank you!`
+                              `Hello ${order.customerName || 'there'},\n\nReminder from ${settings?.restaurantName || 'us'}: your bill of ${fmtPrice(total)} for Order #${order.id} is unpaid. Please settle at your earliest convenience.\n\nView Bill: ${window.location.origin}/bill/${order.id}\n\nThank you!`
                             )}`}
                             target="_blank"
                             rel="noopener noreferrer"

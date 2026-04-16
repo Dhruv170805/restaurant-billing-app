@@ -1,6 +1,8 @@
+import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:flutter/foundation.dart';
 import '../models/order.dart';
 
 /// Loads a Unicode-capable font (Roboto via google_fonts) for use in PDFs.
@@ -16,26 +18,34 @@ Future<pw.Font> _unicodeFontItalic() async {
 }
 
 class PdfGenerator {
+  static Future<Uint8List?> _fetchLogoBytes(String? url) async {
+    if (url == null || url.isEmpty) return null;
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+    } catch (e) {
+      debugPrint('Error fetching logo for PDF: $e');
+    }
+    return null;
+  }
+
   static String _formatTime(String isoString, Map<String, dynamic> settings) {
     try {
       final dt = DateTime.parse(isoString).toUtc();
-      // Simple manual offset for Asia/Kolkata since it's the most common case for this user
-      // A more robust solution would use the timezone package, but we'll start with this
-      // if timezone is not specified or recognized.
       if (settings['timezone'] == 'Asia/Kolkata') {
         final kolkataTime = dt.add(const Duration(hours: 5, minutes: 30));
         return "${kolkataTime.year}-${kolkataTime.month.toString().padLeft(2, '0')}-${kolkataTime.day.toString().padLeft(2, '0')} ${kolkataTime.hour.toString().padLeft(2, '0')}:${kolkataTime.minute.toString().padLeft(2, '0')}";
       }
       return dt.toLocal().toString().substring(0, 16);
     } catch (e) {
-      return isoString.substring(0, 16);
+      return isoString.length > 16 ? isoString.substring(0, 16) : isoString;
     }
   }
 
   static String _cleanText(String? text) {
     if (text == null) return '';
-    // This is a simple fix to remove emojis that would otherwise render as boxes in PDFs
-    // without a dedicated emoji font. It preserves standard alphanumeric and symbols.
     return text.replaceAll(
       RegExp(
         r'[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]',
@@ -53,15 +63,11 @@ class PdfGenerator {
     final pdf = pw.Document();
     final regular = await _unicodeFont();
     final bold = await _unicodeFont(bold: true);
+    final logoBytes = await _fetchLogoBytes(settings['logoUrl']);
 
     final itemsToPrint =
         overrideItems ??
         order.items.where((i) => i.quantity > i.printedQuantity).toList();
-
-    if (itemsToPrint.isEmpty && overrideItems == null) {
-      // If nothing to print and no override, we still return a doc but maybe empty?
-      // Better to handle this in the UI.
-    }
 
     pdf.addPage(
       pw.Page(
@@ -70,22 +76,28 @@ class PdfGenerator {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
+              if (logoBytes != null)
+                pw.Container(
+                  height: 40,
+                  margin: const pw.EdgeInsets.only(bottom: 5),
+                  child: pw.Image(pw.MemoryImage(logoBytes)),
+                ),
               pw.Text(
                 _cleanText(settings['restaurantName'] ?? 'Restaurant'),
-                style: pw.TextStyle(font: bold, fontSize: 24),
+                style: pw.TextStyle(font: bold, fontSize: 20),
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 5),
               pw.Text(
                 'KITCHEN ORDER TICKET',
-                style: pw.TextStyle(font: regular, fontSize: 14),
+                style: pw.TextStyle(font: regular, fontSize: 12),
               ),
               pw.Text(
                 'Order #${order.id}',
-                style: pw.TextStyle(font: bold, fontSize: 20),
+                style: pw.TextStyle(font: bold, fontSize: 18),
               ),
               pw.Text(
                 'Table ${order.tableNumber ?? 'Takeaway'}',
-                style: pw.TextStyle(font: regular, fontSize: 16),
+                style: pw.TextStyle(font: regular, fontSize: 14),
               ),
               pw.SizedBox(height: 10),
               pw.Divider(),
@@ -99,7 +111,7 @@ class PdfGenerator {
               pw.Divider(),
               ...itemsToPrint.map(
                 (item) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                  padding: const pw.EdgeInsets.symmetric(vertical: 1),
                   child: pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
@@ -120,7 +132,7 @@ class PdfGenerator {
               pw.Divider(),
               pw.Text(
                 _formatTime(order.createdAt, settings),
-                style: pw.TextStyle(font: regular),
+                style: pw.TextStyle(font: regular, fontSize: 10),
               ),
             ],
           );
@@ -140,6 +152,7 @@ class PdfGenerator {
     final regular = await _unicodeFont();
     final bold = await _unicodeFont(bold: true);
     final italic = await _unicodeFontItalic();
+    final logoBytes = await _fetchLogoBytes(settings['logoUrl']);
 
     pdf.addPage(
       pw.Page(
@@ -148,74 +161,90 @@ class PdfGenerator {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
+              if (logoBytes != null)
+                pw.Container(
+                  height: 50,
+                  margin: const pw.EdgeInsets.only(bottom: 8),
+                  child: pw.Image(pw.MemoryImage(logoBytes)),
+                ),
               pw.Text(
                 _cleanText(settings['restaurantName'] ?? 'Restaurant'),
-                style: pw.TextStyle(font: bold, fontSize: 24),
+                style: pw.TextStyle(font: bold, fontSize: 22),
               ),
-              if (settings['restaurantAddress'] != null)
-                pw.Text(
-                  settings['restaurantAddress'],
-                  textAlign: pw.TextAlign.center,
-                  style: pw.TextStyle(font: regular),
+              if (settings['restaurantAddress'] != null &&
+                  settings['restaurantAddress'].toString().isNotEmpty)
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 10),
+                  child: pw.Text(
+                    settings['restaurantAddress'],
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(font: regular, fontSize: 10),
+                  ),
                 ),
-              if (settings['restaurantPhone'] != null)
+              if (settings['restaurantPhone'] != null &&
+                  settings['restaurantPhone'].toString().isNotEmpty)
                 pw.Text(
-                  settings['restaurantPhone'],
-                  style: pw.TextStyle(font: regular),
+                  'Phone: ${settings['restaurantPhone']}',
+                  style: pw.TextStyle(font: regular, fontSize: 10),
                 ),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                'TAX INVOICE',
-                style: pw.TextStyle(font: bold, fontSize: 14),
+              pw.SizedBox(height: 8),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                child: pw.Text(
+                  'TAX INVOICE',
+                  style: pw.TextStyle(font: bold, fontSize: 11),
+                ),
               ),
+              pw.SizedBox(height: 5),
               pw.Text(
                 'Order #${order.id}',
-                style: pw.TextStyle(font: regular, fontSize: 14),
+                style: pw.TextStyle(font: regular, fontSize: 11),
               ),
               pw.Text(
                 'Table ${order.tableNumber ?? 'Takeaway'}',
-                style: pw.TextStyle(font: regular, fontSize: 14),
+                style: pw.TextStyle(font: regular, fontSize: 11),
               ),
               pw.SizedBox(height: 10),
-              pw.Divider(),
+              pw.Divider(thickness: 0.5),
               // Header row
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Expanded(
-                    flex: 2,
-                    child: pw.Text('Item', style: pw.TextStyle(font: bold)),
+                    flex: 3,
+                    child: pw.Text('Item', style: pw.TextStyle(font: bold, fontSize: 10)),
                   ),
                   pw.Expanded(
                     flex: 1,
                     child: pw.Text(
                       'Qty',
                       textAlign: pw.TextAlign.center,
-                      style: pw.TextStyle(font: bold),
+                      style: pw.TextStyle(font: bold, fontSize: 10),
                     ),
                   ),
                   pw.Expanded(
-                    flex: 1,
+                    flex: 2,
                     child: pw.Text(
                       'Total',
                       textAlign: pw.TextAlign.right,
-                      style: pw.TextStyle(font: bold),
+                      style: pw.TextStyle(font: bold, fontSize: 10),
                     ),
                   ),
                 ],
               ),
-              pw.Divider(),
+              pw.Divider(thickness: 0.5),
               ...order.items.map(
                 (item) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                  padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
                   child: pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Expanded(
-                        flex: 2,
+                        flex: 3,
                         child: pw.Text(
                           _cleanText(item.name),
-                          style: pw.TextStyle(font: regular),
+                          style: pw.TextStyle(font: regular, fontSize: 10),
                         ),
                       ),
                       pw.Expanded(
@@ -223,30 +252,30 @@ class PdfGenerator {
                         child: pw.Text(
                           '${item.quantity}',
                           textAlign: pw.TextAlign.center,
-                          style: pw.TextStyle(font: regular),
+                          style: pw.TextStyle(font: regular, fontSize: 10),
                         ),
                       ),
                       pw.Expanded(
-                        flex: 1,
+                        flex: 2,
                         child: pw.Text(
                           '$currency${(item.quantity * item.price).toStringAsFixed(2)}',
                           textAlign: pw.TextAlign.right,
-                          style: pw.TextStyle(font: regular),
+                          style: pw.TextStyle(font: regular, fontSize: 10),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              pw.Divider(),
+              pw.Divider(thickness: 0.5),
               // Subtotal
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Subtotal:', style: pw.TextStyle(font: regular)),
+                  pw.Text('Subtotal:', style: pw.TextStyle(font: regular, fontSize: 10)),
                   pw.Text(
                     '$currency${order.subtotal.toStringAsFixed(2)}',
-                    style: pw.TextStyle(font: regular),
+                    style: pw.TextStyle(font: regular, fontSize: 10),
                   ),
                 ],
               ),
@@ -256,46 +285,45 @@ class PdfGenerator {
                   children: [
                     pw.Text(
                       settings['taxLabel'] ?? 'Tax:',
-                      style: pw.TextStyle(font: regular),
+                      style: pw.TextStyle(font: regular, fontSize: 10),
                     ),
                     pw.Text(
                       '$currency${order.tax.toStringAsFixed(2)}',
-                      style: pw.TextStyle(font: regular),
+                      style: pw.TextStyle(font: regular, fontSize: 10),
                     ),
                   ],
                 ),
-              pw.Divider(),
+              pw.Divider(thickness: 1),
               // Grand total
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
                     'GRAND TOTAL:',
-                    style: pw.TextStyle(font: bold, fontSize: 16),
+                    style: pw.TextStyle(font: bold, fontSize: 14),
                   ),
                   pw.Text(
                     '$currency${order.total.toStringAsFixed(2)}',
-                    style: pw.TextStyle(font: bold, fontSize: 16),
+                    style: pw.TextStyle(font: bold, fontSize: 14),
                   ),
                 ],
               ),
-              pw.Divider(),
+              pw.Divider(thickness: 1),
               pw.SizedBox(height: 10),
               pw.Text(
                 _cleanText(
-                  settings['billGreeting'] != null &&
-                          settings['billGreeting'].toString().isNotEmpty
-                      ? settings['billGreeting']
-                      : (settings['restaurantTagline'] ??
-                            'Thank you for dining with us!'),
+                  settings['restaurantTagline'] != null &&
+                          settings['restaurantTagline'].toString().isNotEmpty
+                      ? settings['restaurantTagline']
+                      : 'Thank you for dining with us!',
                 ),
                 textAlign: pw.TextAlign.center,
-                style: pw.TextStyle(font: italic),
+                style: pw.TextStyle(font: italic, fontSize: 10),
               ),
               pw.SizedBox(height: 5),
               pw.Text(
                 _formatTime(order.createdAt, settings),
-                style: pw.TextStyle(font: regular),
+                style: pw.TextStyle(font: regular, fontSize: 9, color: PdfColors.grey700),
               ),
             ],
           );
@@ -315,6 +343,7 @@ class PdfGenerator {
     final regular = await _unicodeFont();
     final bold = await _unicodeFont(bold: true);
     final italic = await _unicodeFontItalic();
+    final logoBytes = await _fetchLogoBytes(settings['logoUrl']);
 
     final todayRev = (stats['todayRevenue'] ?? 0.0) as num;
     final cashRev = (stats['cashRevenue'] ?? 0.0) as num;
@@ -336,26 +365,37 @@ class PdfGenerator {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  pw.Row(
                     children: [
-                      pw.Text(
-                        settings['restaurantName'] ?? 'Restaurant',
-                        style: pw.TextStyle(
-                          font: bold,
-                          fontSize: 24,
-                          color: const PdfColor.fromInt(0xFF0B0B0F),
+                      if (logoBytes != null)
+                        pw.Container(
+                          width: 50,
+                          height: 50,
+                          margin: const pw.EdgeInsets.only(right: 12),
+                          child: pw.Image(pw.MemoryImage(logoBytes)),
                         ),
-                      ),
-                      if (settings['restaurantAddress'] != null)
-                        pw.Text(
-                          settings['restaurantAddress'],
-                          style: pw.TextStyle(
-                            font: regular,
-                            fontSize: 10,
-                            color: const PdfColor.fromInt(0xFF666666),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            settings['restaurantName'] ?? 'Restaurant',
+                            style: pw.TextStyle(
+                              font: bold,
+                              fontSize: 22,
+                              color: const PdfColor.fromInt(0xFF0B0B0F),
+                            ),
                           ),
-                        ),
+                          if (settings['restaurantAddress'] != null)
+                            pw.Text(
+                              settings['restaurantAddress'],
+                              style: pw.TextStyle(
+                                font: regular,
+                                fontSize: 9,
+                                color: const PdfColor.fromInt(0xFF666666),
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                   pw.Column(
@@ -372,7 +412,7 @@ class PdfGenerator {
                       pw.SizedBox(height: 4),
                       pw.Text(
                         DateTime.now().toString().substring(0, 10),
-                        style: pw.TextStyle(font: regular, fontSize: 12),
+                        style: pw.TextStyle(font: regular, fontSize: 11),
                       ),
                     ],
                   ),
@@ -438,7 +478,7 @@ class PdfGenerator {
                 'TOP SELLING ITEMS (LAST 7 DAYS)',
                 style: pw.TextStyle(
                   font: bold,
-                  fontSize: 12,
+                  fontSize: 11,
                   color: const PdfColor.fromInt(0xFF888888),
                 ),
               ),
@@ -455,8 +495,8 @@ class PdfGenerator {
                   headerDecoration: const pw.BoxDecoration(
                     color: PdfColor.fromInt(0xFFF8F8F8),
                   ),
-                  headerStyle: pw.TextStyle(font: bold, fontSize: 10),
-                  cellStyle: pw.TextStyle(font: regular, fontSize: 10),
+                  headerStyle: pw.TextStyle(font: bold, fontSize: 9),
+                  cellStyle: pw.TextStyle(font: regular, fontSize: 9),
                   border: pw.TableBorder.all(
                     color: const PdfColor.fromInt(0xFFE0E0E0),
                     width: 0.5,
@@ -481,7 +521,7 @@ class PdfGenerator {
                   'Generated automatically by the POS System',
                   style: pw.TextStyle(
                     font: italic,
-                    fontSize: 9,
+                    fontSize: 8,
                     color: const PdfColor.fromInt(0xFFAAAAAA),
                   ),
                 ),
@@ -516,14 +556,14 @@ class PdfGenerator {
             label.toUpperCase(),
             style: pw.TextStyle(
               font: bold,
-              fontSize: 8,
+              fontSize: 7,
               color: const PdfColor.fromInt(0xFF888888),
             ),
           ),
           pw.SizedBox(height: 4),
           pw.Text(
             value,
-            style: pw.TextStyle(font: bold, fontSize: 16, color: color),
+            style: pw.TextStyle(font: bold, fontSize: 14, color: color),
           ),
         ],
       ),

@@ -1,21 +1,18 @@
+import { requireAuth } from '@/lib/middleware/auth'
+import { handleApiError } from '@/lib/errors'
 import { NextResponse } from 'next/server'
-import { markKOTPrinted } from '@/lib/db/orders'
+import { markKOTPrinted } from '@/lib/db'
 
-export async function PUT(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
+export const PUT = requireAuth(async (req, { tenant }, params) => {
     try {
-        const resolvedParams = await params
-        const id = parseInt(resolvedParams.id, 10)
+        const id = parseInt(params!.id as string, 10)
         if (isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
 
-        const updatedOrder = await markKOTPrinted(id)
+        const updatedOrder = await markKOTPrinted(tenant.slug, id)
         if (!updatedOrder) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
         return NextResponse.json(updatedOrder)
     } catch (error) {
-        console.error('Failed to mark KOT printed:', error)
-        return NextResponse.json({ error: 'Failed to update KOT status' }, { status: 500 })
+        return handleApiError(error)
     }
-}
+})

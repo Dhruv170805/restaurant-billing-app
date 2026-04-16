@@ -1,18 +1,16 @@
 import { ensureInitialized } from './mongo'
-import { DbTableInfo as TableInfo, DbDashboardStats as DashboardStats } from './schema'
+import { DbTableInfo as TableInfo, DbDashboardStats as DashboardStats, DbOrder } from './schema'
+import { getTenantBySlug } from './tenants'
 
-import { getSettings } from './settings'
-import { DbOrder } from './schema'
-
-export async function getTables(): Promise<TableInfo[]> {
+export async function getTables(tenantId: string): Promise<TableInfo[]> {
   const db = await ensureInitialized()
-  const settings = await getSettings()
-  const tableCount = settings.tableCount || 12
+  const tenant = await getTenantBySlug(tenantId)
+  const tableCount = tenant?.config?.maxTables || 12
 
   const docs = await db
     .collection<DbOrder>('orders')
     .aggregate([
-      { $match: { status: 'PENDING', tableNumber: { $gt: 0 } } },
+      { $match: { tenantId, status: 'PENDING', tableNumber: { $gt: 0 } } },
       {
         $project: {
           _id: 1,
@@ -53,7 +51,7 @@ export async function getTables(): Promise<TableInfo[]> {
   return tables
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+export async function getDashboardStats(tenantId: string): Promise<DashboardStats> {
   const db = await ensureInitialized()
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -81,7 +79,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         $facet: {
           // ── Main stats aggregate ──
           mainStats: [
-            { $match: { createdAt: { $gte: monthStart } } },
+            { $match: { tenantId, createdAt: { $gte: monthStart } } },
             {
               $group: {
                 _id: null,
@@ -174,7 +172,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
           ],
           // ── Top selling items (7-day window) ──
           topItems: [
-            { $match: { status: 'PAID', createdAt: { $gte: sevenDaysAgo } } },
+            { $match: { tenantId, status: 'PAID', createdAt: { $gte: sevenDaysAgo } } },
             { $unwind: '$items' },
             {
               $group: {
@@ -189,18 +187,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
           ],
           // ── Recent orders (Today) ──
           recentOrders: [
-            { $match: { createdAt: { $gte: todayStart } } },
+            { $match: { tenantId, createdAt: { $gte: todayStart } } },
             { $sort: { createdAt: -1 } },
             { $limit: 10 },
           ],
           // ── All unpaid orders ──
           unpaidOrders: [
-            { $match: { status: 'UNPAID' } },
+            { $match: { tenantId, status: 'UNPAID' } },
             { $sort: { createdAt: -1 } },
           ],
           // ── Weekly totals (for AI) ──
           weeklyData: [
-            { $match: { status: 'PAID', createdAt: { $gte: sevenDaysAgo } } },
+            { $match: { tenantId, status: 'PAID', createdAt: { $gte: sevenDaysAgo } } },
             { $project: { total: 1, createdAt: 1 } },
           ],
         },

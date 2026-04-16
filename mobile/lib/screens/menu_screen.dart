@@ -8,6 +8,7 @@ import '../models/menu_item.dart';
 import '../providers/pos_provider.dart';
 import '../utils/app_colors.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/brand_logo.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -381,40 +382,7 @@ class _MenuScreenState extends State<MenuScreen> {
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: EdgeInsets.only(left: 20, bottom: 14),
-              title: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Menu',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Container(
-                    margin: EdgeInsets.only(bottom: 3),
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${menuItems.length} items',
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              title: const BrandLogo(height: 28),
               background: ClipRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -586,9 +554,9 @@ class _MenuScreenState extends State<MenuScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: [AppColors.orange, AppColors.red]),
           borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x55FF6A00),
+              color: AppColors.orange.withValues(alpha: 0.35),
               blurRadius: 16,
               offset: Offset(0, 6),
             ),
@@ -840,7 +808,7 @@ class _GlassField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.orange, width: 1.5),
+          borderSide: BorderSide(color: AppColors.orange, width: 1.5),
         ),
         contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),

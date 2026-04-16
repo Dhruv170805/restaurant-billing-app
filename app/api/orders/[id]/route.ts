@@ -9,15 +9,17 @@ import {
   validateOptionalStringLength,
 } from '@/lib/validation'
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+import { requireAuth } from '@/lib/middleware/auth'
+
+export const GET = requireAuth(async (req, { tenant }, params) => {
   try {
-    const { id } = await params
-    const orderId = parseInt(id)
+    const { id } = params!
+    const orderId = parseInt(id as string)
     if (isNaN(orderId) || orderId < 1) {
       throw new ValidationError('Invalid order ID')
     }
 
-    const order = await getOrder(orderId)
+    const order = await getOrder(orderId, tenant.slug)
     if (!order) {
       throw new NotFoundError('Order', orderId)
     }
@@ -26,17 +28,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = requireAuth(async (req, { tenant }, params) => {
   try {
-    const { id } = await params
-    const orderId = parseInt(id)
+    const { id } = params!
+    const orderId = parseInt(id as string)
     if (isNaN(orderId) || orderId < 1) {
       throw new ValidationError('Invalid order ID')
     }
 
-    const body = await request.json()
+    const body = await req.json()
     const newStatus = validateEnum(
       body.status,
       ['PENDING', 'PAID', 'UNPAID', 'CANCELLED'] as const,
@@ -56,7 +58,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const customerPhone = validateOptionalStringLength(body.customerPhone, 'Customer Phone', 5, 20)
 
     // Check current order exists and validate state transition
-    const currentOrder = await getOrder(orderId)
+    const currentOrder = await getOrder(orderId, tenant.slug)
     if (!currentOrder) {
       throw new NotFoundError('Order', orderId)
     }
@@ -64,7 +66,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // Enforce valid state transitions (e.g., CANCELLED → PAID is not allowed)
     validateOrderStatusTransition(currentOrder.status, newStatus)
 
-    const order = await updateOrderStatus(orderId, newStatus, paymentMethod, {
+    const order = await updateOrderStatus(tenant.slug, orderId, newStatus, paymentMethod, {
       customerName,
       customerPhone,
     })
@@ -76,17 +78,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = requireAuth(async (req, { tenant }, params) => {
   try {
-    const { id } = await params
-    const orderId = parseInt(id)
+    const { id } = params!
+    const orderId = parseInt(id as string)
     if (isNaN(orderId) || orderId < 1) {
       throw new ValidationError('Invalid order ID')
     }
 
-    const deleted = await deleteOrder(orderId)
+    const deleted = await deleteOrder(tenant.slug, orderId)
     if (!deleted) {
       throw new NotFoundError('Order', orderId)
     }
@@ -95,4 +97,4 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   } catch (error) {
     return handleApiError(error)
   }
-}
+})

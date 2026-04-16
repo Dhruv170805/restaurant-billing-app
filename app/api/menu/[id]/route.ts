@@ -9,15 +9,17 @@ import {
   validatePositiveInteger,
 } from '@/lib/validation'
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+import { requireAuth } from '@/lib/middleware/auth'
+
+export const GET = requireAuth(async (req, { tenant }, params) => {
   try {
-    const { id } = await params
-    const itemId = parseInt(id)
+    const { id } = params!
+    const itemId = parseInt(id as string)
     if (isNaN(itemId) || itemId < 1) {
       throw new ValidationError('Invalid menu item ID')
     }
 
-    const item = await getMenuItem(itemId)
+    const item = await getMenuItem(tenant.slug, itemId)
     if (!item) {
       throw new NotFoundError('Menu item', itemId)
     }
@@ -26,17 +28,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = requireAuth(async (req, { tenant }, params) => {
   try {
-    const { id } = await params
-    const itemId = parseInt(id)
+    const { id } = params!
+    const itemId = parseInt(id as string)
     if (isNaN(itemId) || itemId < 1) {
       throw new ValidationError('Invalid menu item ID')
     }
 
-    const body = await request.json()
+    const body = await req.json()
     const updates: { name?: string; price?: number; categoryId?: number } = {}
 
     if (body.name !== undefined) {
@@ -53,7 +55,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       throw new ValidationError('At least one field (name, price, categoryId) must be provided')
     }
 
-    const updated = await updateMenuItem(itemId, updates)
+    const updated = await updateMenuItem(tenant.slug, itemId, updates)
     if (!updated) {
       throw new NotFoundError('Menu item', itemId)
     }
@@ -62,17 +64,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = requireAuth(async (req, { tenant }, params) => {
   try {
-    const { id } = await params
-    const itemId = parseInt(id)
+    const { id } = params!
+    const itemId = parseInt(id as string)
     if (isNaN(itemId) || itemId < 1) {
       throw new ValidationError('Invalid menu item ID')
     }
 
-    const deleted = await deleteMenuItem(itemId)
+    const deleted = await deleteMenuItem(tenant.slug, itemId)
     if (!deleted) {
       throw new NotFoundError('Menu item', itemId)
     }
@@ -81,4 +83,4 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   } catch (error) {
     return handleApiError(error)
   }
-}
+})

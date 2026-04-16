@@ -1,43 +1,39 @@
 import { NextResponse } from 'next/server'
-
-export const dynamic = 'force-dynamic'
 import {
-  getOrders,
-  getOrdersPaginated,
-  createOrder,
-  getMenuItem,
-  getOrder,
-  addItemsToOrder,
-} from '@/lib/db'
+  listPgOrders,
+  createPgOrder,
+  addItemsToPgOrder,
+} from '@/lib/db/postgres_orders'
+import { getMenuItem } from '@/lib/db/menu'
 import { handleApiError } from '@/lib/errors'
 import { ValidationError } from '@/lib/errors'
 import { validatePositiveInteger, validateOptionalStringLength } from '@/lib/validation'
+import { requireAuth } from '@/lib/middleware/auth'
 
-export async function GET(request: Request) {
+export const GET = requireAuth(async (req, { tenant }) => {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = new URL(req.url)
     const page = searchParams.get('page')
     const limit = searchParams.get('limit')
 
     if (page || limit) {
       const p = page ? parseInt(page) : 1
-      const l = limit ? parseInt(limit) : 20
+      const l = limit ? parseInt(limit) : 50
       if (isNaN(p) || p < 1) throw new ValidationError('page must be a positive integer')
-      if (isNaN(l) || l < 1 || l > 100) throw new ValidationError('limit must be between 1 and 100')
-      const result = await getOrdersPaginated(p, l)
-      return NextResponse.json(result)
+      const result = await listPgOrders(tenant.id, l, (p - 1) * l)
+      return NextResponse.json({ orders: result, page: p, limit: l })
     }
 
-    const orders = await getOrders()
+    const orders = await listPgOrders(tenant.id)
     return NextResponse.json(orders)
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
 
-export async function POST(request: Request) {
+export const POST = requireAuth(async (req, { tenant }) => {
   try {
-    const body = await request.json()
+    const body = await req.json()
     const { items, tableNumber, orderId } = body
 
     const customerName = validateOptionalStringLength(body.customerName, 'Customer Name', 2, 100)
@@ -51,7 +47,7 @@ export async function POST(request: Request) {
 
     // Verify each item exists in the menu
     for (const item of validatedItems) {
-      const menuItem = await getMenuItem(item.id)
+      const menuItem = await getMenuItem(tenant.slug, item.id)
       if (!menuItem) {
         throw new ValidationError(`Menu item #${item.id} does not exist`, { itemId: item.id })
       }
@@ -59,39 +55,24 @@ export async function POST(request: Request) {
 
     const orderItems = validatedItems.map((item) => ({
       menuItemId: item.id,
-      name: item.name,
       quantity: item.quantity,
-      price: item.price,
     }))
 
-    // Total is recalculated server-side — client total ignored
-    const clientTotal = body.total || 0
-
     if (orderId) {
-      // Append items to existing order
-      const existingOrder = await getOrder(orderId)
-      if (!existingOrder) {
-        throw new ValidationError('Order not found', { orderId })
-      }
-      if (existingOrder.status !== 'PENDING') {
-        throw new ValidationError('Can only add items to an active order', {
-          status: existingOrder.status,
-        })
-      }
-      const updatedOrder = await addItemsToOrder(orderId, orderItems)
+      const updatedOrder = await addItemsToPgOrder(tenant.id, orderId, orderItems)
       return NextResponse.json(updatedOrder, { status: 200 })
     } else {
       // Create a new order
-      const order = await createOrder(
-        orderItems,
-        clientTotal,
-        validTable,
+      const order = await createPgOrder({
+        tenantId: tenant.id,
+        items: orderItems,
+        tableNumber: validTable,
         customerName,
         customerPhone
-      )
+      })
       return NextResponse.json(order, { status: 201 })
     }
   } catch (error) {
     return handleApiError(error)
   }
-}
+})

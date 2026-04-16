@@ -2,13 +2,14 @@ import { ensureInitialized, getNextSequence } from './mongo'
 import { Category, MenuItem } from '@/lib/db'
 import { DbCategory, DbMenuItem } from './schema'
 
-export async function getCategories(): Promise<Category[]> {
+export async function getCategories(tenantId: string): Promise<Category[]> {
   const db = await ensureInitialized()
 
   // Aggregate to get item counts
   const categories = await db
     .collection<DbCategory>('categories')
     .aggregate([
+      { $match: { tenantId } },
       {
         $lookup: {
           from: 'menu_items',
@@ -38,36 +39,37 @@ export async function getCategories(): Promise<Category[]> {
   )
 }
 
-export async function addCategory(name: string): Promise<Category> {
+export async function addCategory(tenantId: string, name: string): Promise<Category> {
   const db = await ensureInitialized()
   const id = await getNextSequence('categoryId')
-  await db.collection<DbCategory>('categories').insertOne({ _id: id, name })
+  await db.collection<DbCategory>('categories').insertOne({ _id: id, tenantId, name })
   return { id, name } as unknown as Category
 }
 
-export async function updateCategory(id: number, name: string): Promise<Category | null> {
+export async function updateCategory(tenantId: string, id: number, name: string): Promise<Category | null> {
   const db = await ensureInitialized()
   const result = await db
     .collection<DbCategory>('categories')
-    .updateOne({ _id: id }, { $set: { name } })
+    .updateOne({ _id: id, tenantId }, { $set: { name } })
   if (result.matchedCount === 0) return null
   return { id, name } as unknown as Category
 }
 
-export async function deleteCategory(id: number): Promise<boolean> {
+export async function deleteCategory(tenantId: string, id: number): Promise<boolean> {
   const db = await ensureInitialized()
-  const itemCount = await db.collection<DbMenuItem>('menu_items').countDocuments({ categoryId: id })
+  const itemCount = await db.collection<DbMenuItem>('menu_items').countDocuments({ categoryId: id, tenantId })
   if (itemCount > 0) return false // Prevent deletion if items exist
 
-  const result = await db.collection<DbCategory>('categories').deleteOne({ _id: id })
+  const result = await db.collection<DbCategory>('categories').deleteOne({ _id: id, tenantId })
   return result.deletedCount > 0
 }
 
-export async function getMenuItems(): Promise<MenuItem[]> {
+export async function getMenuItems(tenantId: string): Promise<MenuItem[]> {
   const db = await ensureInitialized()
   const items = await db
     .collection<DbMenuItem>('menu_items')
     .aggregate([
+      { $match: { tenantId } },
       {
         $lookup: {
           from: 'categories',
@@ -93,12 +95,12 @@ export async function getMenuItems(): Promise<MenuItem[]> {
   )
 }
 
-export async function getMenuItem(id: number): Promise<MenuItem | undefined> {
+export async function getMenuItem(tenantId: string, id: number): Promise<MenuItem | undefined> {
   const db = await ensureInitialized()
   const items = await db
     .collection<DbMenuItem>('menu_items')
     .aggregate([
-      { $match: { _id: id } },
+      { $match: { _id: id, tenantId } },
       {
         $lookup: {
           from: 'categories',
@@ -123,17 +125,19 @@ export async function getMenuItem(id: number): Promise<MenuItem | undefined> {
 }
 
 export async function addMenuItem(
+  tenantId: string,
   name: string,
   price: number,
   categoryId: number
 ): Promise<MenuItem | null> {
   const db = await ensureInitialized()
-  const category = await db.collection<DbCategory>('categories').findOne({ _id: categoryId })
+  const category = await db.collection<DbCategory>('categories').findOne({ _id: categoryId, tenantId })
   if (!category) return null
 
   const id = await getNextSequence('menuItemId')
   await db.collection<DbMenuItem>('menu_items').insertOne({
     _id: id,
+    tenantId,
     name,
     price,
     categoryId,
@@ -149,19 +153,20 @@ export async function addMenuItem(
 }
 
 export async function updateMenuItem(
+  tenantId: string,
   id: number,
   updates: { name?: string; price?: number; categoryId?: number }
 ): Promise<MenuItem | null> {
   const db = await ensureInitialized()
   const result = await db
     .collection<DbMenuItem>('menu_items')
-    .updateOne({ _id: id }, { $set: updates })
+    .updateOne({ _id: id, tenantId }, { $set: updates })
   if (result.matchedCount === 0) return null
-  return (await getMenuItem(id)) || null
+  return (await getMenuItem(tenantId, id)) || null
 }
 
-export async function deleteMenuItem(id: number): Promise<boolean> {
+export async function deleteMenuItem(tenantId: string, id: number): Promise<boolean> {
   const db = await ensureInitialized()
-  const result = await db.collection<DbMenuItem>('menu_items').deleteOne({ _id: id })
+  const result = await db.collection<DbMenuItem>('menu_items').deleteOne({ _id: id, tenantId })
   return result.deletedCount > 0
 }

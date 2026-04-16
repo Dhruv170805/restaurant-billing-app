@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
+import '../services/tenant_service.dart';
 
 /// Central design token file for NEXUS POS.
-/// All colors and gradients are defined here — do NOT inline Color(0xFF...) in screens.
+/// All colors and gradients are dynamic and adapt to the tenant context.
 
 class AppColors {
   AppColors._();
 
-  // ─── Brand ─────────────────────────────────────────────────────────────────
-  static const Color orange = Color(0xFFFF6A00);
-  static const Color orangeAlt = Color(0xFFFF6B00);
-  static const Color red = Color(0xFFFF2E63);
-  static const Color redAlt = Color(0xFFE61C24);
+  static final _tenant = TenantService();
 
-  // ─── Semantic ──────────────────────────────────────────────────────────────
+  // ─── Brand (Dynamic) ───────────────────────────────────────────────────────
+  static Color get primary => _tenant.config.theme.primaryColor;
+  
+  static Color get accent {
+    final hex = _tenant.config.theme.accent.replaceAll('#', '');
+    final value = int.tryParse('FF$hex', radix: 16) ?? 0xFFFF2E63; // Fallback to red
+    return Color(value);
+  }
+
+  // legacy aliases for backward compatibility
+  static Color get orange => primary;
+  static Color get orangeAlt => primary;
+  static Color get red => accent;
+  static Color get redAlt => accent;
+
+  // ─── Semantic (Static) ─────────────────────────────────────────────────────
   static const Color green = Color(0xFF22C55E);
   static const Color greenDark = Color(0xFF16A34A);
   static const Color greenAlt = Color(0xFF30D158); // iOS system green
@@ -37,9 +49,9 @@ class AppColors {
   static const Color muted = Color(0xFF888888);
   static const Color subtle = Color(0xFF555555);
 
-  // ─── Gradients ─────────────────────────────────────────────────────────────
-  static const LinearGradient brandGradient = LinearGradient(
-    colors: [orange, red],
+  // ─── Gradients (Dynamic) ───────────────────────────────────────────────────
+  static LinearGradient get brandGradient => LinearGradient(
+    colors: [primary, accent],
   );
 
   static const LinearGradient greenGradient = LinearGradient(
@@ -48,8 +60,8 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient heatGradient = LinearGradient(
-    colors: [orange, dangerAlt],
+  static LinearGradient get heatGradient => LinearGradient(
+    colors: [primary, dangerAlt],
   );
 }
 

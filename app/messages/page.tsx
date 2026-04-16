@@ -16,7 +16,7 @@ export default function MessagesPage() {
     useEffect(() => {
         fetch('/api/customers')
             .then(r => r.json())
-            .then(data => setCustomers(data))
+            .then(data => setCustomers(Array.isArray(data) ? data : []))
             .catch(console.error)
             .finally(() => setLoading(false))
     }, [])

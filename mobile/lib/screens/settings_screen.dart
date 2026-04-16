@@ -5,7 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import '../providers/pos_provider.dart';
+
+import '../services/tenant_service.dart';
 import '../services/api_service.dart';
 import '../utils/app_colors.dart';
 
@@ -51,24 +52,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> loadSettings() async {
     setState(() => isLoading = true);
     try {
-      final s = await api.fetchSettings();
-      if (!mounted) return;
-      nameController.text = s['restaurantName'] ?? '';
-      addressController.text = s['restaurantAddress'] ?? '';
-      phoneController.text = s['restaurantPhone'] ?? '';
-      currencyController.text = s['currencySymbol'] ?? '₹';
-      taxController.text = (s['taxRate'] ?? 0).toString();
-      tableCountController.text = (s['tableCount'] ?? 10).toString();
-      selectedTheme = s['theme'] ?? 'system';
+      final tenant = Provider.of<TenantService>(context, listen: false).config;
+      nameController.text = tenant.name;
+      currencyController.text = tenant.currencySymbol;
+      taxController.text = tenant.taxRate.toString();
+      tableCountController.text = '10'; // Read only fallback for UI
 
       final prefs = await SharedPreferences.getInstance();
       serverIpController.text =
           prefs.getString('server_ip') ?? dotenv.env['API_BASE_URL'] ?? '';
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Load failed: $e')));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -79,28 +73,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     HapticFeedback.mediumImpact();
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await api.updateSettings({
-        'restaurantName': nameController.text.trim(),
-        'restaurantAddress': addressController.text.trim(),
-        'restaurantPhone': phoneController.text.trim(),
-        'currencySymbol': currencyController.text.trim(),
-        'taxRate': double.tryParse(taxController.text) ?? 0.0,
-        'tableCount': int.tryParse(tableCountController.text) ?? 10,
-        'theme': selectedTheme,
-      });
-
       if (serverIpController.text.trim().isNotEmpty) {
         await api.setServerIp(serverIpController.text.trim());
       }
       HapticFeedback.lightImpact();
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Settings saved ✓'),
+          content: Text('Network settings formatted ✓'),
           backgroundColor: AppColors.green,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
         ),
       );
     } catch (e) {
@@ -170,93 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: AppColors.orangeAlt,
                     label: 'Preferences',
                   ),
-                  _GlassSection(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'App Theme',
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodyLarge?.color,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: SegmentedButton<String>(
-                                segments: const [
-                                  ButtonSegment<String>(
-                                    value: 'light',
-                                    label: Text('Light'),
-                                    icon: Icon(
-                                      Icons.light_mode_rounded,
-                                      size: 16,
-                                    ),
-                                  ),
-                                  ButtonSegment<String>(
-                                    value: 'dark',
-                                    label: Text('Dark'),
-                                    icon: Icon(
-                                      Icons.dark_mode_rounded,
-                                      size: 16,
-                                    ),
-                                  ),
-                                  ButtonSegment<String>(
-                                    value: 'system',
-                                    label: Text('Auto'),
-                                    icon: Icon(
-                                      Icons.settings_suggest_rounded,
-                                      size: 16,
-                                    ),
-                                  ),
-                                ],
-                                selected: {selectedTheme},
-                                onSelectionChanged: (Set<String> newSelection) {
-                                  final newTheme = newSelection.first;
-                                  setState(() {
-                                    selectedTheme = newTheme;
-                                  });
-                                  // Optimistically apply the layout instantly:
-                                  final pos = Provider.of<PosProvider>(
-                                    context,
-                                    listen: false,
-                                  );
-                                  final Map<String, dynamic>
-                                  optimisticSettings =
-                                      Map<String, dynamic>.from(pos.settings);
-                                  optimisticSettings['theme'] = newTheme;
-                                  pos.setSettings(optimisticSettings);
-                                },
-                                style: SegmentedButton.styleFrom(
-                                  side: BorderSide(
-                                    color: Theme.of(context).dividerColor,
-                                  ),
-                                  textStyle: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  backgroundColor: Colors.transparent,
-                                  selectedBackgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.2),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+
 
                   SizedBox(height: 24),
 
@@ -270,24 +165,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       _SettingsField(
                         controller: nameController,
-                        label: 'Restaurant Name',
+                        label: 'Restaurant Name (Managed Online)',
                         icon: Icons.storefront_outlined,
                         hint: 'My Restaurant',
-                      ),
-                      const _SectionDivider(),
-                      _SettingsField(
-                        controller: addressController,
-                        label: 'Address',
-                        icon: Icons.location_on_outlined,
-                        hint: '123 Main Street, City',
-                      ),
-                      const _SectionDivider(),
-                      _SettingsField(
-                        controller: phoneController,
-                        label: 'Phone',
-                        icon: Icons.phone_outlined,
-                        hint: '+91 9876543210',
-                        keyboard: TextInputType.phone,
+                        readOnly: true,
                       ),
                     ],
                   ),
@@ -307,6 +188,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: 'Currency Symbol',
                         icon: Icons.attach_money_rounded,
                         hint: '₹',
+                        readOnly: true,
                       ),
                       const _SectionDivider(),
                       _SettingsField(
@@ -314,9 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: 'Tax Rate (%)',
                         icon: Icons.percent_rounded,
                         hint: '18',
-                        keyboard: TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
+                        readOnly: true,
                       ),
                     ],
                   ),
@@ -336,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: 'Number of Tables',
                         icon: Icons.table_bar_outlined,
                         hint: '10',
-                        keyboard: TextInputType.number,
+                        readOnly: true,
                       ),
                     ],
                   ),
@@ -396,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'Save Settings',
+                                    'Save Network Settings',
                                     style: TextStyle(
                                       color: Theme.of(
                                         context,
@@ -575,14 +455,14 @@ class _SettingsField extends StatelessWidget {
   final String label;
   final IconData icon;
   final String hint;
-  final TextInputType? keyboard;
+  final bool readOnly;
 
   const _SettingsField({
     required this.controller,
     required this.label,
     required this.icon,
     required this.hint,
-    this.keyboard,
+    this.readOnly = false,
   });
 
   @override
@@ -609,11 +489,13 @@ class _SettingsField extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
-              keyboardType: keyboard,
+              readOnly: readOnly,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
+                color: readOnly 
+                    ? Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.5)
+                    : Theme.of(context).textTheme.bodyLarge?.color,
               ),
               decoration: InputDecoration(
                 labelText: label,

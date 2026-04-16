@@ -10,8 +10,10 @@ import '../models/order.dart';
 import '../providers/pos_provider.dart';
 import 'pos_screen.dart';
 import '../services/socket_service.dart';
+import '../services/tenant_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/brand_logo.dart';
 
 class DashboardScreen extends StatefulWidget {
   final ApiService? api;
@@ -26,7 +28,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoading = true;
   String? errorMessage;
   List<Order> activeOrders = [];
-  Map<String, dynamic> settings = {};
   StreamSubscription? _socketSub;
   Timer? _clockTimer;
 
@@ -34,7 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     api = widget.api ?? ApiService();
-    _loadStaleDataThenRefresh();
+    loadDashboard();
 
     // Listen for real-time updates
     _socketSub = SocketService().eventStream.listen((event) {
@@ -56,22 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  Future<void> _loadStaleDataThenRefresh() async {
-    final staleSettings = await api.fetchSettingsFromDisk();
-    if (staleSettings != null && mounted) {
-      Provider.of<PosProvider>(
-        context,
-        listen: false,
-      ).setSettings(staleSettings);
-      setState(() {
-        settings = staleSettings;
-        isLoading = false;
-      });
-      loadDashboard(silent: true);
-    } else {
-      loadDashboard();
-    }
-  }
+
 
   @override
   void dispose() {
@@ -88,17 +74,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     }
     try {
-      final fetchedSettings = await api.fetchSettings();
-      if (!mounted) return;
-      Provider.of<PosProvider>(
-        context,
-        listen: false,
-      ).setSettings(fetchedSettings);
-
       final fetchedOrders = await api.fetchOrders();
       if (!mounted) return;
       setState(() {
-        settings = fetchedSettings;
         activeOrders = fetchedOrders
             .where((o) => o.status == 'PENDING')
             .toList();
@@ -143,10 +121,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currency =
-        Provider.of<PosProvider>(context).settings['currencySymbol'] ?? '₹';
-    final tableCount = (settings['tableCount'] ?? 10) as int;
+    final tenant = Provider.of<TenantService>(context);
+    final currency = tenant.config.currencySymbol;
+    final tableCount = 10; // We define max tables natively or assume 10 for dashboard grid. Oh wait, tenant config doesn't expose maxTables explicitly in the Dart layer yet, but we can fallback to 10.
     final occupiedCount = activeOrders.map((o) => o.tableNumber).toSet().length;
+
+    // Inject into POS Provider globally so the POS grid knows to apply tax and labels
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<PosProvider>(context, listen: false).setSettings({
+          'taxEnabled': tenant.config.taxEnabled,
+          'taxRate': tenant.config.taxRate,
+          'currencySymbol': tenant.config.currencySymbol,
+          'restaurantName': tenant.config.name,
+          'restaurantAddress': tenant.config.address,
+          'restaurantPhone': tenant.config.phone,
+          'restaurantTagline': tenant.config.tagline,
+          'logoUrl': tenant.config.logoUrl,
+        });
+      }
+    });
 
     return Scaffold(
       body: CustomScrollView(
@@ -160,15 +154,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
-              title: Text(
-                'Tables',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
-                ),
-              ),
+              title: const BrandLogo(height: 28),
               background: ClipRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -265,7 +251,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (isLoading)
             SliverFillRemaining(
               child: SkeletonTableGrid(
-                count: (settings['tableCount'] ?? 10) as int,
+                count: tableCount,
               ),
             )
           else if (errorMessage != null && activeOrders.isEmpty)

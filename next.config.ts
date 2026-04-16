@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
+  async rewrites() {
+    return [
+      {
+        source: '/hq/api/superadmin/:path*',
+        destination: 'http://localhost:4000/api/superadmin/:path*',
+      },
+    ]
+  },
 }
 
 export default nextConfig

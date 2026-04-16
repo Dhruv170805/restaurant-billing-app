@@ -3,7 +3,8 @@ import { Inter } from 'next/font/google'
 import './theme.css'
 import Link from 'next/link'
 import { Toaster } from 'sonner'
-import { getSettingsCompat } from '@/lib/settings'
+import { headers } from 'next/headers'
+import { getTenantBySlug } from '@/lib/db/tenants'
 import { SWRProvider } from '@/components/ui/SWRProvider'
 
 export const dynamic = 'force-dynamic'
@@ -19,23 +20,33 @@ export const viewport: Viewport = {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSettingsCompat()
+  const headersList = await headers()
+  const tenantSlug = headersList.get('X-Tenant-ID') || 'default'
+  const tenant = await getTenantBySlug(tenantSlug)
+
+  const title = tenant?.name || 'NEXUS POS'
   return {
-    title: settings.restaurant.name,
-    description: `${settings.restaurant.name} — Restaurant Billing & POS System`,
+    title,
+    description: `${title} — Multi-Tenant Restaurant POS System`,
     manifest: '/manifest.json',
     icons: { apple: '/icon-192x192.png' },
     appleWebApp: {
       capable: true,
       statusBarStyle: 'black-translucent',
-      title: settings.restaurant.name,
+      title,
     },
   }
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSettingsCompat()
-  const theme = settings.app?.theme || 'system'
+  const headersList = await headers()
+  const tenantSlug = headersList.get('X-Tenant-ID') || 'default'
+  const tenant = await getTenantBySlug(tenantSlug)
+
+  const theme = 'system'
+  const restaurantName = tenant?.name || 'NEXUS POS'
+  const primaryColor = tenant?.theme?.primary || '#f37c22'
+  const brandLogo = tenant?.logoUrl || '/logo.png'
 
   return (
     <html lang="en" data-theme={theme === 'system' ? undefined : theme} suppressHydrationWarning>
@@ -50,36 +61,49 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             }}
           />
         )}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            :root {
+              --primary: ${primaryColor};
+              --primary-light: ${primaryColor}cc;
+              --primary-dark: ${primaryColor};
+            }
+          `
+        }} />
       </head>
       <body className={inter.className}>
         <SWRProvider>
           <nav className="navbar">
             <Link
               href="/"
-              style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', padding: '0.2rem 0.5rem', borderRadius: '12px', transition: 'all 0.2s', background: 'rgba(255,255,255,0.03)' }}
+              className="hover:scale-105"
             >
+              {tenant?.logoUrl && (
+                <img src={tenant.logoUrl} alt="Logo" style={{ height: '36px', width: '36px', objectFit: 'contain', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' }} />
+              )}
               <span
                 style={{
-                  fontSize: '1.55rem',
+                  fontSize: '1.45rem',
                   fontWeight: 900,
-                  background: 'linear-gradient(135deg, #f37c22, #e8521a)',
+                  background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   letterSpacing: '-0.5px',
                   userSelect: 'none',
                 }}
               >
-                {settings.restaurant.name}
+                {restaurantName}
               </span>
             </Link>
-            <div className="flex gap-6">
+            <div className="flex gap-6 items-center">
               <Link href="/" className="nav-link">Tables</Link>
               <Link href="/tables/qr" className="nav-link">QR</Link>
               <Link href="/menu" className="nav-link">Menu</Link>
               <Link href="/orders" className="nav-link">Orders</Link>
               <Link href="/dashboard" className="nav-link">Sales</Link>
               <Link href="/messages" className="nav-link">Marketing</Link>
-              <Link href="/settings" className="nav-link">⚙️</Link>
+              <Link href="/settings" className="nav-link" style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '12px', padding: '0.4rem 0.8rem' }}>Settings</Link>
             </div>
           </nav>
 
@@ -97,7 +121,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               transform: 'scale(2)',
             }}
           >
-            <img src="/logo.png" alt="" style={{ width: '60vmin', height: '60vmin', objectFit: 'contain' }} />
+            <img src={brandLogo} alt="" style={{ width: '60vmin', height: '60vmin', objectFit: 'contain', filter: 'saturate(2)' }} />
           </div>
 
           <div style={{ position: 'relative', zIndex: 1, paddingTop: '4.8rem', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

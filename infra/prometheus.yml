@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'nexus-app'
+    metrics_path: '/api/metrics'
+    static_configs:
+      - targets: ['app:3000']
+
+  - job_name: 'nexus-postgres'
+    static_configs:
+      - targets: ['postgres:5432'] # Requires postgres-exporter for deeper metrics
+
+  - job_name: 'nexus-redis'
+    static_configs:
+      - targets: ['redis:6379'] # Requires redis-exporter
